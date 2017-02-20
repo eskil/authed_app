@@ -16,7 +16,7 @@ all the things, I'm renaming the app from `simple_auth` to
 `authed_app` and skipping the post models.
 
 I recommend reading his blog post, and if you follow that, you
-can basically skip to [the next chapter](ex-machina-tests).
+can basically skip to [the next chapter](#ex-machina-tests).
 
 ## Start a phoenix project
 
