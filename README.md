@@ -551,7 +551,9 @@ defmodule AuthedApp.GuardianSerializer do
 end
 ```
 
-Now we hook up SessionController's `create` in `web/controllers/session_controller.ex`:
+Hook up SessionController's `create` in
+`web/controllers/session_controller.ex` to let users log in if their
+password is verified.
 
 ```diff
 diff --git a/web/controllers/session_controller.ex b/web/controllers/session_controller.ex
@@ -701,12 +703,12 @@ index 1837e66..6e61e12 100644
 
 ## Refactoring
 
-So we're now
-[here](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#6687),
-we'll refactor SessionController's `login` and `logout` to enable
-logging in when registering.
+We're now
+[here in the blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#6687).
 
-We move `login` and `logout` to `web/auth/auth.ex` and add `login_by_email_and_password`.
+We'll refactor SessionController's `login` and `logout` to enable
+logging in when registering. Move `login` and `logout` to
+`web/auth/auth.ex` and add `login_by_email_and_password`.
 
 ```elixir
 defmodule AuthedApp.Auth do
@@ -828,4 +830,23 @@ index bbe66e7..5b36fa1 100644
          |> redirect(to: user_path(conn, :show, user))
        {:error, changeset} ->
 ```
+
+## Session specific pages
+
+We are now [now here in the
+blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
+and we'll start to deviate slightly. I won't be adding the posts
+models etc, only the signed in/not signed in/admin distinction.
+
+  * A `/news` page available to all.
+  * A `/info` page only available to signed in users.
+  * A `/admin` page that lists all users, only available to admins.
+
+These will be available from the front page, where we'll replace the
+"Resources" and "Help" lists with a single "Pages" list. And this list
+will only show the links available given the current session.
+
+
+
+
 # Ex Machina Tests
