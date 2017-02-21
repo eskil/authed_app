@@ -20,7 +20,8 @@ can basically skip to [the next chapter](#ex-machina-tests).
 
 ## Start a phoenix project
 
-Create a project
+Create a new blank project and do your initial commit.
+
 ```bash
 mix phoenix.new authed_app
 mix ecto.create
@@ -33,11 +34,14 @@ git commit -m "Initial commit."
 ## Add user model
 
 Create the user model with a bool for admin flag.
+
 ```bash
 mix phoenix.gen.model User users email:string name:string password_hash:string is_admin:boolean
 ```
 
-Edit as per the blog;
+As per the blog, edit the db migration to requre email and create a
+unique index on emails.
+
 ```diff
 diff --git a/priv/repo/migrations/20170220211113_create_user.exs b/priv/repo/migrations/20170220211113_create_user.exs
 index 660cc3f..fe44a7b 100644
@@ -61,7 +65,8 @@ index 660cc3f..fe44a7b 100644
  end
 ```
 
-And fix up the user model
+Fix up the user model to have a virtual (non-db-backed) password field, and tweak the changeset to clearly list out optiona and required fields.
+
 ```diff
 diff --git a/web/models/user.ex b/web/models/user.ex
 index 2c7f823..48fb451 100644
@@ -667,4 +672,133 @@ index 1837e66..6e61e12 100644
          <span class="logo"></span>
 ```
 
+## Refactoring
+
+So we're now
+[here](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#6687),
+we'll refactor SessionController's `login` and `logout` to enable
+logging in when registering.
+
+We move `login` and `logout` to `web/auth/auth.ex` and add `login_by_email_and_password`.
+
+```elixir
+defmodule AuthedApp.Auth do
+  import Comeonin.Bcrypt, only: [checkpw: 2, dummy_checkpw: 0]
+
+  alias AuthedApp.Repo
+  alias AuthedApp.User
+
+  def login(conn, user) do
+    conn
+    |> Guardian.Plug.sign_in(user)
+  end
+
+  def logout(conn) do
+    Guardian.Plug.sign_out(conn)
+  end
+
+  def login_by_email_and_password(conn, email, password) do
+    # Get user by email
+    user = Repo.get_by(User, email: email)
+
+    cond do
+      # We have a user and the hashed password matches the db one.
+      user && checkpw(password, user.password_hash) ->
+        {:ok, login(conn, user)}
+      # We have a user but the password check failed.
+      user ->
+        {:error, :unauthorized, conn}
+      # Didn't find the email, call dummy_checkpw to fake delay.
+      true ->
+        dummy_checkpw()
+        {:error, :not_found, conn}
+    end
+  end
+end
+```
+
+Trim down `web/controllers/session_controller.ex` to call the new module.
+
+```diff
+diff --git a/web/controllers/session_controller.ex b/web/controllers/session_controller.ex
+index 268caa2..042e0f3 100644
+--- a/web/controllers/session_controller.ex
++++ b/web/controllers/session_controller.ex
+@@ -1,8 +1,6 @@
+ defmodule AuthedApp.SessionController do
+   use AuthedApp.Web, :controller
+
+-  import Comeonin.Bcrypt, only: [checkpw: 2, dummy_checkpw: 0]
+-
+   alias AuthedApp.User
+
+   plug :scrub_params, "session" when action in [:create]
+@@ -12,26 +10,10 @@ defmodule AuthedApp.SessionController do
+   end
+
+   def create(conn, %{"session" => %{"email" => email, "password" => password}}) do
+-    # Get user by email
+-    user = Repo.get_by(User, email: email)
+-
+-    result = cond do
+-      # We have a user and the hashed password matches the db one.
+-      user && checkpw(password, user.password_hash) ->
+-        {:ok, login(conn, user)}
+-      # We have a user but the password check failed.
+-      user ->
+-        {:error, :unauthorized, conn}
+-      # Didn't find the email, call dummy_checkpw to fake delay.
+-      true ->
+-        dummy_checkpw()
+-        {:error, :not_found, conn}
+-    end
+-
+-    case result do
++    case AuthedApp.Auth.login_by_email_and_password(email, password) do
+       {:ok, conn} ->
+         conn
+-        |> put_flash(:info, "You're logged in")
++        |> put_flash(:info, "You're signed in")
+         |> redirect(to: page_path(conn, :index))
+       {:error, _reason, conn} ->
+         conn
+@@ -40,19 +22,10 @@ defmodule AuthedApp.SessionController do
+     end
+   end
+
+-  defp login(conn, user) do
+-    conn
+-    |> Guardian.Plug.sign_in(user)
+-  end
+-
+   def delete(conn, _params) do
+     conn
+-    |> logout
++    |> AuthedApp.Auth.logout
+     |> put_flash(:info, "Logged out")
+     |> redirect(to: page_path(conn, :index))
+   end
+-
+-  defp logout(conn) do
+-    Guardian.Plug.sign_out(conn)
+-  end
+ end
+```
+
+And tweak UserController to sign in the user right after creating in `web/controllers/user_controller.ex`
+
+```diff
+diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
+index bbe66e7..5b36fa1 100644
+--- a/web/controllers/user_controller.ex
++++ b/web/controllers/user_controller.ex
+@@ -22,6 +22,7 @@ defmodule AuthedApp.UserController do
+     case Repo.insert(changeset) do
+       {:ok, user} ->
+         conn
++        |> AuthedApp.Auth.login(user)
+         |> put_flash(:info, "#{user.name} created!")
+         |> redirect(to: user_path(conn, :show, user))
+       {:error, changeset} ->
+```
 # Ex Machina Tests
