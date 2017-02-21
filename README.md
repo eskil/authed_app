@@ -849,7 +849,8 @@ will only show the links available given the current session.
 We already have a UserController that can list the users for the
 `/user` endpoint. We'll add two controllers for `/news` and `/info`.
 
-In `web/controllers/news_controller.ex` (note, you could use `mix phoenix.gen.html` for a lot of this, but keeping this explicit).
+In `web/controllers/news_controller.ex` (note, you could use `mix
+phoenix.gen.html` for a lot of this, but keeping this explicit).
 
 ```elixir
 defmodule AuthedApp.NewsController do
@@ -986,6 +987,14 @@ index db9a6a6..8951803 100644
 
 Now we all the endpoints but not authorisation checks.
 
+
+# Authorisation checks on pages
+
+We're still [here in the
+blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
+and now resume adding the three kinds of authorisation.
+
+**TODO: add**
 
 # Ex Machina Tests
 
