@@ -334,7 +334,7 @@ index a1c60db..bbe66e7 100644
 ```
 
 We are now
-[here](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37)
+[here in Andrei's blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37)
 and can register users with hashed passwords.
 
 
@@ -471,7 +471,8 @@ index c3bce30..1837e66 100644
 
 We are now [here in Andrei's
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#2334)
-and ready to add Guardain to our project, and implement signing in.
+and ready to add [Guardian](https://github.com/ueberauth/guardian) to
+our project, and implement signing in.
 
 Add guardian to `./mix.exs`:
 
@@ -492,7 +493,8 @@ index efc5070..fa593ef 100644
    # Aliases are shortcuts or tasks specific to the current project.
 ```
 
-Add a section to `config/dev.exs` to configure guardian
+Add a section to `config/dev.exs` to configure Guardian. Without this
+`iex` will fail since Guardian needs a config section.
 
 ```elixir
 config :guardian, Guardian,
@@ -503,7 +505,9 @@ config :guardian, Guardian,
  secret_key: to_string(Mix.env) <> "some secret for now"
 ```
 
-You can now generate a better secret key, and/or add a `config/prod.exs` with a production specific key. To generate the key, launch `iex -S mix`
+You can now generate a better secret key, and/or add a
+`config/prod.exs` with a production specific key. To generate the key,
+launch `iex -S mix` and call [JOSE.JWK](https://github.com/bryanjos/joken) directly.
 
 ```bash
 Interactive Elixir (1.4.1) - press Ctrl+C to exit (type h() ENTER for help)
