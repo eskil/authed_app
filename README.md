@@ -642,4 +642,29 @@ index 9cbc592..268caa2 100644
  end
 ```
 
+And we leverage the `AuthedApp.CurrentUser` plug to use the `@current_user` in `web/templates/layout/app.html.eex` to differentiate between signed in and out sessions.
+
+```diff
+diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
+index 1837e66..6e61e12 100644
+--- a/web/templates/layout/app.html.eex
++++ b/web/templates/layout/app.html.eex
+@@ -16,8 +16,13 @@
+       <header class="header">
+         <nav role="navigation">
+           <ul class="nav nav-pills pull-right">
+-            <li><%= link "Register", to: user_path(@conn, :new) %></li>
+-            <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
++            <%= if @current_user do %>
++              <li><%= @current_user.name %> (<%= @current_user.email %>)</li>
++              <li><%= link("Sign out", to: session_path(@conn, :delete, @current_user), method: "delete") %></li>
++            <%= else %>
++              <li><%= link "Register", to: user_path(@conn, :new) %></li>
++              <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
++            <%= end %>
+           </ul>
+         </nav>
+         <span class="logo"></span>
+```
+
 # Ex Machina Tests
