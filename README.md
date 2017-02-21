@@ -409,7 +409,8 @@ index 2c8b88f..3431a53 100644
    # Other scopes may use custom stacks.
 ```
 
-We can test it by calling curl to get the login page (and the csrf token that phoenix automagically gives us).
+We can test it by calling curl to get the login page (and the csrf
+token that phoenix inserts).
 
 Start the service
 ```bash
@@ -421,11 +422,18 @@ Get the login page plus cookie and csrf token
 ```bash
 curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ...
-<form accept-charset="UTF-8" action="/sessions" method="post"><input name="_csrf_token" type="hidden" value="eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw=="><input name="_utf8" type="hidden" value="✓">  <div class="form-group">
-<input class="form-control" id="session_email" name="session[email]" placeholder="Email" type="text">  </div>
+<form accept-charset="UTF-8" action="/sessions" method="post">
+  <input name="_csrf_token" type="hidden"
+   value="eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==">
+  <input name="_utf8" type="hidden" value="✓">
   <div class="form-group">
-<input class="form-control" id="session_password" name="session[password]" placeholder="Password" type="password">  </div>
-<button class="btn btn-primary" type="submit">Sign in</button></form>
+    <input class="form-control" id="session_email" name="session[email]" placeholder="Email" type="text">
+  </div>
+  <div class="form-group">
+    <input class="form-control" id="session_password" name="session[password]" placeholder="Password" type="password">
+  </div>
+  <button class="btn btn-primary" type="submit">Sign in</button>
+</form>
 ```
 
 ```bash
@@ -438,7 +446,8 @@ This will end with a crash since SessionController's `create` isn't implemented 
 Server: localhost:4000 (http)
 Request: POST /sessions
 ** (exit) an exception was raised:
-    ** (RuntimeError) expected action/2 to return a Plug.Conn, all plugs must receive a connection (conn) and return a connection
+    ** (RuntimeError) expected action/2 to return a Plug.Conn, all plugs must receive a
+       connection (conn) and return a connection
 ```
 
 Extend the app layout to include a signon link in `web/templates/layout/app.html.eex`.
