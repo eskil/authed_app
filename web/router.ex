@@ -13,8 +13,15 @@ defmodule AuthedApp.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :with_session do
+    plug Guardian.Plug.VerifySession
+    plug Guardian.Plug.LoadResource
+    plug AuthedApp.CurrentUser
+  end
+
+
   scope "/", AuthedApp do
-    pipe_through :browser # Use the default browser stack
+    pipe_through [:browser, :with_session]
 
     get "/", PageController, :index
 

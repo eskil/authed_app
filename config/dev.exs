@@ -41,3 +41,10 @@ config :authed_app, AuthedApp.Repo,
   database: "authed_app_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :guardian, Guardian,
+ issuer: "AuthedApp.#{Mix.env}",
+ ttl: {30, :days},
+ verify_issuer: true,
+ serializer: AuthedApp.GuardianSerializer,
+ secret_key: %{"k" => "Bvmi7pm61u-7FYNHw8sR7VaAwyJQboCDPXdWBS3Lxxc", "kty" => "oct"}

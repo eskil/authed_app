@@ -446,6 +446,200 @@ We are now [here in Andrei's
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#2334)
 and ready to add Guardain to our project, and implement signing in.
 
+Add guardian to `./mix.exs`:
 
+```diff
+diff --git a/mix.exs b/mix.exs
+index efc5070..fa593ef 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -38,7 +38,8 @@ defmodule AuthedApp.Mixfile do
+      {:phoenix_live_reload, "~> 1.0", only: :dev},
+      {:gettext, "~> 0.11"},
+      {:cowboy, "~> 1.0"},
+-     {:comeonin, "~> 2.5"}]
++     {:comeonin, "~> 2.5"},
++     {:guardian, "~> 0.14"}]
+   end
+
+   # Aliases are shortcuts or tasks specific to the current project.
+```
+
+Add a section to `config/dev.exs` to configure guardian
+
+```elixir
+config :guardian, Guardian,
+ issuer: "AuthedApp.#{Mix.env}",
+ ttl: {30, :days},
+ verify_issuer: true,
+ serializer: AuthedApp.GuardianSerializer,
+ secret_key: to_string(Mix.env) <> "some secret for now"
+```
+
+You can now generate a better secret key, and/or add a `config/prod.exs` with a production specific key. To generate the key, launch `iex -S mix`
+
+```bash
+Interactive Elixir (1.4.1) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> JOSE.JWK.generate_key({:ec, "P-521"}) |> JOSE.JWK.to_map |> elem(1)
+%{"crv" => "P-521",
+  "d" => "Xp-xQ-zuy6hEKn5QNnyDxk6S9ZiB2LExXG8wXOrt0bl7JCbiirg73i5sS20iovPUofxXrekmejVEIpfdN4S7HJg",
+  "kty" => "EC",
+  "x" => "Abj7h0Yz_70RR3YudNnAKGRKwT6axraxC7427db_OvWVQam-plI6HDs15UwydtGv4mAtMsWmmK9c3Wvrmgwm9U_V",
+  "y" => "ARI0t4q-v8qiTksOrCtEgHYFFxvgOAMXOnino8lgsVurFWRZK_6ibmqLSEQaIkk1K22noH28gVICL28m09OXVuH3"}
+iex(2)> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map |> elem(1)
+%{"k" => "Bvmi7pm61u-7FYNHw8sR7VaAwyJQboCDPXdWBS3Lxxc", "kty" => "oct"}
+iex(3)>
+```
+
+YMMV on what kind of key you want to use, we'll just use the 32 oct key for now, so `config/dev.exs` ends up like
+
+```elixir
+config :guardian, Guardian,
+ issuer: "AuthedApp.#{Mix.env}",
+ ttl: {30, :days},
+ verify_issuer: true,
+ serializer: AuthedApp.GuardianSerializer,
+ secret_key: %{"k" => "Bvmi7pm61u-7FYNHw8sR7VaAwyJQboCDPXdWBS3Lxxc", "kty" => "oct"}
+```
+
+Finally we add the `GuardianSerializer` module in `web/auth/guardian_serializer.ex`
+
+```elixir
+defmodule AuthedApp.GuardianSerializer do
+  @behaviour Guardian.Serializer
+
+  alias AuthedApp.Repo
+  alias AuthedApp.User
+
+  def for_token(user = %User{}), do: {:ok, "User:#{user.id}"}
+  def for_token(_), do: {:error, "Unknown resource type"}
+
+  def from_token("User:" <> id), do: {:ok, Repo.get(User, id)}
+  def from_token(_), do: {:error, "Unknown resource type"}
+end
+```
+
+Now we hook up SessionController's `create` in `web/controllers/session_controller.ex`:
+
+```diff
+diff --git a/web/controllers/session_controller.ex b/web/controllers/session_controller.ex
+index e42aaa9..9cbc592 100644
+--- a/web/controllers/session_controller.ex
++++ b/web/controllers/session_controller.ex
+@@ -1,6 +1,10 @@
+ defmodule AuthedApp.SessionController do
+   use AuthedApp.Web, :controller
+
++  import Comeonin.Bcrypt, only: [checkpw: 2, dummy_checkpw: 0]
++
++  alias AuthedApp.User
++
+   plug :scrub_params, "session" when action in [:create]
+
+   def new(conn, _params) do
+@@ -8,7 +12,37 @@ defmodule AuthedApp.SessionController do
+   end
+
+   def create(conn, %{"session" => %{"email" => email, "password" => password}}) do
+-    # tbd
++    # Get user by email
++    user = Repo.get_by(User, email: email)
++
++    result = cond do
++      # We have a user and the hashed password matches the db one.
++      user && checkpw(password, user.password_hash) ->
++        {:ok, login(conn, user)}
++      # We have a user but the password check failed.
++      user ->
++        {:error, :unauthorized, conn}
++      # Didn't find the email, call dummy_checkpw to fake delay.
++      true ->
++        dummy_checkpw()
++        {:error, :not_found, conn}
++    end
++
++    case result do
++      {:ok, conn} ->
++        conn
++        |> put_flash(:info, "You're logged in")
++        |> redirect(to: page_path(conn, :index))
++      {:error, _reason, conn} ->
++        conn
++        |> put_flash(:error, "Invalid email or password")
++        |> render("new.html")
++    end
++  end
++
++  defp login(conn, user) do
++    conn
++    |> Guardian.Plug.sign_in(user)
+   end
+
+   def delete(conn, _params) do
+```
+
+Now we add the most excellent `current_user` plug from the blog post in `web/auth/current_user.ex`:
+
+```elixir
+defmodule AuthedApp.CurrentUser do
+  import Plug.Conn
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    assign(conn, :current_user, Guardian.Plug.current_resource(conn))
+  end
+end
+```
+
+and connect it in a pipeline in `web/router.ex` that also calls the
+other Guardian plugs to verify the session and load the user.
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 3431a53..8964828 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -13,8 +13,15 @@ defmodule AuthedApp.Router do
+     plug :accepts, ["json"]
+   end
+
++  pipeline :with_session do
++    plug Guardian.Plug.VerifySession
++    plug Guardian.Plug.LoadResource
++    plug AuthedApp.CurrentUser
++  end
++
++
+   scope "/", AuthedApp do
+-    pipe_through :browser # Use the default browser stack
++    pipe_through [:browser, :with_session]
+
+     get "/", PageController, :index
+```
+
+And then the sign-out by implementing SessionController's `delete` in `web/controllers/session_controller.ex`
+
+```diff
+diff --git a/web/controllers/session_controller.ex b/web/controllers/session_controller.ex
+index 9cbc592..268caa2 100644
+--- a/web/controllers/session_controller.ex
++++ b/web/controllers/session_controller.ex
+@@ -46,6 +46,13 @@ defmodule AuthedApp.SessionController do
+   end
+
+   def delete(conn, _params) do
+-    # tbd
++    conn
++    |> logout
++    |> put_flash(:info, "Logged out")
++    |> redirect(to: page_path(conn, :index))
++  end
++
++  defp logout(conn) do
++    Guardian.Plug.sign_out(conn)
+   end
+ end
+```
 
 # Ex Machina Tests
