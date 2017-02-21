@@ -313,7 +313,7 @@ index a1c60db..bbe66e7 100644
 ```
 
 We are now
-(here)[https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37]
+[here](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37)
 and can register users with hashed passwords.
 
 # Ex Machina Tests
