@@ -196,4 +196,124 @@ index 7b4e9de..5f9a640 100644
          <span class="logo"></span>
 ```
 
+## Session controller.
+
+This next part of Andrei's blog is where we add the session
+controller, including password hasing etc.
+
+For hasing, add `comeonin` to `./mix.exs`
+```diff
+diff --git a/mix.exs b/mix.exs
+index b488bd0..efc5070 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -19,7 +19,7 @@ defmodule AuthedApp.Mixfile do
+   def application do
+     [mod: {AuthedApp, []},
+      applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
+-                    :phoenix_ecto, :postgrex]]
++                    :phoenix_ecto, :postgrex, :comeonin]]
+   end
+
+   # Specifies which paths to compile per environment.
+@@ -37,7 +37,8 @@ defmodule AuthedApp.Mixfile do
+      {:phoenix_html, "~> 2.6"},
+      {:phoenix_live_reload, "~> 1.0", only: :dev},
+      {:gettext, "~> 0.11"},
+-     {:cowboy, "~> 1.0"}]
++     {:cowboy, "~> 1.0"},
++     {:comeonin, "~> 2.5"}]
+   end
+
+   # Aliases are shortcuts or tasks specific to the current project.
+```
+
+We add a specific changeset for registrations to `web/models/user.ex`
+that uses comeonin to bcrypt the stored password.
+
+```diff
+diff --git a/web/models/user.ex b/web/models/user.ex
+index 48fb451..741a73f 100644
+--- a/web/models/user.ex
++++ b/web/models/user.ex
+@@ -21,4 +21,30 @@ defmodule AuthedApp.User do
+     |> cast(params, @required_fields ++ @optional_fields)
+     |> validate_required(@required_fields)
+   end
++
++  @doc """
++  Build a changeset for registration.
++  Validates password and ensures it gets hashed.
++  """
++  def registration_changeset(struct, params) do
++    struct
++    |> changeset(params)
++    |> cast(params, [:password], [])
++    |> validate_length(:password, min: 6, max: 100)
++    |> hash_password
++  end
++
++  @doc """
++  Adds the hashed password to the changeset.
++  """
++  defp hash_password(changeset) do
++    case changeset do
++      # If it's a valid password, grab (by matching) the password,
++      # change the changeset by inserting the hashed password.
++      %Ecto.Changeset{valid?: true, changes: %{password: password}} ->
++        put_change(changeset, :password_hash, Comeonin.Bcrypt.hashpwsalt(password))
++      # Anything else (eg. not valid), return untouched.
++      _ -> changeset
++    end
++  end
+ end
+```
+
+Change user controller in `web/controllers/user_controller.ex` to check for (and scrub) a `user` param on create, and then make the `create` method use
+the `registration_changeset`
+```diff
+diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
+index d81aa75..a1c60db 100644
+--- a/web/controllers/user_controller.ex
++++ b/web/controllers/user_controller.ex
+@@ -3,6 +3,10 @@ defmodule AuthedApp.UserController do
+
+   alias AuthedApp.User
+
++  # https://hexdocs.pm/phoenix/Phoenix.Controller.html#scrub_params/2
++  # This plug checks we have a "user" key and converts empty strings to nils.
++  plug :scrub_params, "user" when action in [:create]
++
+   def show(conn, %{"id" => id}) do
+     user = Repo.get!(User, id)
+     render(conn, "show.html", user: user)
+```
+
+```diff
+diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
+index a1c60db..bbe66e7 100644
+--- a/web/controllers/user_controller.ex
++++ b/web/controllers/user_controller.ex
+@@ -18,6 +18,14 @@ defmodule AuthedApp.UserController do
+   end
+
+   def create(conn, %{"user" => user_params}) do
+-    # tbd
++    changeset = User.registration_changeset(%User{}, user_params)
++    case Repo.insert(changeset) do
++      {:ok, user} ->
++        conn
++        |> put_flash(:info, "#{user.name} created!")
++        |> redirect(to: user_path(conn, :show, user))
++      {:error, changeset} ->
++        render(conn, "new.html", changeset: changeset)
++    end
+   end
+ end
+```
+
+We are now
+(here)[https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37]
+and can register users with hashed passwords.
+
 # Ex Machina Tests
