@@ -98,14 +98,17 @@ index 2c7f823..48fb451 100644
  end
 ```
 
-Run migration to create db
+Run migration to create the db and users table.
+
 ```bash
 mix ecto.migrate
 ```
 
 ## User controller
 
-Add the initial user controller in `web/controllers/user_controller.ex`
+Add the initial user controller in
+`web/controllers/user_controller.ex` to handle creating users.
+
 ```elixir
 defmodule AuthedApp.UserController do
   use AuthedApp.Web, :controller
@@ -128,7 +131,8 @@ defmodule AuthedApp.UserController do
 end
 ```
 
-And a route to the resource
+And a route to the users resource.
+
 ```diff
 diff --git a/web/router.ex b/web/router.ex
 index 329c6c4..2c8b88f 100644
@@ -147,20 +151,23 @@ index 329c6c4..2c8b88f 100644
 
 ## User registration form
 
-And the view class in `web/views/user_view.ex`
+Add a view class in `web/views/user_view.ex` for user related matters.
+
 ```elixir
 defmodule AuthedApp.UserView do
   use AuthedApp.Web, :view
 end
 ```
 
-And some basic templates, `web/templates/user/show.html.eex` to show user info.
+And some basic templates. `web/templates/user/show.html.eex` to show user info.
+
 ```html
 <h2><%= @user.name %></h2>
 <p><%= @user.email %></p>
 ```
 
 and `web/templates/new.html.eex` which is our registration form.
+
 ```html
 <h1>User Registration</h1>
 <%= form_for @changeset, user_path(@conn, :create), fn f -> %>
@@ -188,7 +195,9 @@ and `web/templates/new.html.eex` which is our registration form.
 <% end %>
 ```
 
-Add links to registration in the header instead of "get started" in `web/templates/layout/app.html.eex
+Add links to registration in the header instead of "get started" in
+`web/templates/layout/app.html.eex
+
 ```diff
 diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
 index 7b4e9de..5f9a640 100644
@@ -210,7 +219,8 @@ index 7b4e9de..5f9a640 100644
 This next part of Andrei's blog is where we add the registration code
 path, including password hashing and validation.
 
-For hasing, add `comeonin` to `./mix.exs`
+For hasing, add [comeonin](https://github.com/riverrun/comeonin) to `./mix.exs`
+
 ```diff
 diff --git a/mix.exs b/mix.exs
 index b488bd0..efc5070 100644
@@ -278,8 +288,10 @@ index 48fb451..741a73f 100644
  end
 ```
 
-Change user controller in `web/controllers/user_controller.ex` to check for (and scrub) a `user` param on create, and then make the `create` method use
-the `registration_changeset`
+Change user controller in `web/controllers/user_controller.ex` to
+check for (and scrub) a `user` parameter on create, and then make the
+`create` method use the `registration_changeset`
+
 ```diff
 diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
 index d81aa75..a1c60db 100644
@@ -329,26 +341,9 @@ and can register users with hashed passwords.
 # Session controller
 
 Sessions are managed by `new` which is the login form, `create` which
-is a login request and `delete` which is the logout. Add the route to
-the controller.
+is a login form submit and `delete` which is the logout.
 
-```diff
-diff --git a/web/router.ex b/web/router.ex
-index 2c8b88f..3431a53 100644
---- a/web/router.ex
-+++ b/web/router.ex
-@@ -19,6 +19,8 @@ defmodule AuthedApp.Router do
-     get "/", PageController, :index
-
-     resources "/users", UserController, only: [:show, :new, :create]
-+
-+    resources "/sessions", SessionController, only: [:new, :create, :delete]
-   end
-
-   # Other scopes may use custom stacks.
-```
-
-And add the controller in `web/controllers/session_controller.ex`.
+Add the SessionController in `web/controllers/session_controller.ex`.
 
 ```elixir
 defmodule AuthedApp.SessionController do
@@ -378,7 +373,7 @@ defmodule AuthedApp.SessionView do
 end
 ```
 
-and the login template in `web/templates/session/new.html.eex`:
+and the login form in `web/templates/session/new.html.eex`:
 
 ```html
 <h1>Sign in</h1>
@@ -394,6 +389,24 @@ and the login template in `web/templates/session/new.html.eex`:
   </div>
   <%= submit "Sign in", class: "btn btn-primary" %>
 <% end %>
+```
+
+Finally add the controller to routing in `web/router.ex`.
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 2c8b88f..3431a53 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -19,6 +19,8 @@ defmodule AuthedApp.Router do
+     get "/", PageController, :index
+
+     resources "/users", UserController, only: [:show, :new, :create]
++
++    resources "/sessions", SessionController, only: [:new, :create, :delete]
+   end
+
+   # Other scopes may use custom stacks.
 ```
 
 We can test it by calling curl to get the login page (and the csrf token that phoenix automagically gives us).
