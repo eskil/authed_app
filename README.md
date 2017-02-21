@@ -783,7 +783,7 @@ index 268caa2..042e0f3 100644
 -    end
 -
 -    case result do
-+    case AuthedApp.Auth.login_by_email_and_password(email, password) do
++    case AuthedApp.Auth.login_by_email_and_password(conn, email, password) do
        {:ok, conn} ->
          conn
 -        |> put_flash(:info, "You're logged in")
@@ -840,13 +840,65 @@ models etc, only the signed in/not signed in/admin distinction.
 
   * A `/news` page available to all.
   * A `/info` page only available to signed in users.
-  * A `/admin` page that lists all users, only available to admins.
+  * A `/users` page that lists all users, only available to admins.
 
 These will be available from the front page, where we'll replace the
 "Resources" and "Help" lists with a single "Pages" list. And this list
 will only show the links available given the current session.
 
+We already have a UserController that can list the users for the
+`/user` endpoint. We'll add two controllers for `/news` and `/info`.
 
+In `web/controllers/news_controller.ex` (note, you could use `mix phoenix.gen.html` for a lot of this, but keeping this explicit).
 
+```elixir
+defmodule AuthedApp.NewsController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.html")
+  end
+end
+```
+
+it's corresponding view module in `/web/views/news_view.ex`
+```elixir
+defmodule AuthedApp.NewsView do
+  use AuthedApp.Web, :view
+end
+```
+
+and the template in `web/templates/news/index.html.eex`
+
+```html
+<h2>News</h2>
+<p>No news today</p>
+```
+
+and connect it's route in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 8964828..dc9df3a 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -23,6 +23,7 @@ defmodule AuthedApp.Router do
+   scope "/", AuthedApp do
+     pipe_through [:browser, :with_session]
+
++    get "/news", NewsController, :index
+     get "/", PageController, :index
+
+     resources "/users", UserController, only: [:show, :new, :create]
+```
+
+**TODO: add the /info page, and /users (index) for admins**
 
 # Ex Machina Tests
+
+**TODO: add `ex_machina`, plus test all the login/auth paths.
+
+# JSON API
+
+**TODO: add json endpoints for registration, login, logout, news, info
+  and user listing for admins.**

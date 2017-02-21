@@ -23,6 +23,7 @@ defmodule AuthedApp.Router do
   scope "/", AuthedApp do
     pipe_through [:browser, :with_session]
 
+    get "/news", NewsController, :index
     get "/", PageController, :index
 
     resources "/users", UserController, only: [:show, :new, :create]

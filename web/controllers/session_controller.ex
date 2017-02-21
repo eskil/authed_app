@@ -10,7 +10,7 @@ defmodule AuthedApp.SessionController do
   end
 
   def create(conn, %{"session" => %{"email" => email, "password" => password}}) do
-    case AuthedApp.Auth.login_by_email_and_password(email, password) do
+    case AuthedApp.Auth.login_by_email_and_password(conn, email, password) do
       {:ok, conn} ->
         conn
         |> put_flash(:info, "You're signed in")
