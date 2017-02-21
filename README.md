@@ -78,8 +78,8 @@ index 2c7f823..48fb451 100644
      timestamps()
    end
 
-+  @required_fields ~w(email)a
-+  @optional_fields ~w(name is_admin)a
++  @required_fields [:email]
++  @optional_fields [:name, :is_admin]
    @doc """
    Builds a changeset based on the `struct` and `params`.
    """
@@ -97,6 +97,8 @@ Run migration to create db
 ```bash
 mix ecto.migrate
 ```
+
+## User controller
 
 Add the initial user controller in `web/controllers/user_controller.ex`
 ```elixir
@@ -138,6 +140,8 @@ index 329c6c4..2c8b88f 100644
    # Other scopes may use custom stacks.
 ```
 
+## User registration form
+
 And the view class in `web/views/user_view.ex`
 ```elixir
 defmodule AuthedApp.UserView do
@@ -145,13 +149,13 @@ defmodule AuthedApp.UserView do
 end
 ```
 
-And some basic templates, `web/templates/user/show.html.eex`
+And some basic templates, `web/templates/user/show.html.eex` to show user info.
 ```html
 <h2><%= @user.name %></h2>
 <p><%= @user.email %></p>
 ```
 
-`web/templates/new.html.eex`
+and `web/templates/new.html.eex` which is our registration form.
 ```html
 <h1>User Registration</h1>
 <%= form_for @changeset, user_path(@conn, :create), fn f -> %>
@@ -190,16 +194,16 @@ index 7b4e9de..5f9a640 100644
          <nav role="navigation">
            <ul class="nav nav-pills pull-right">
 -            <li><a href="http://www.phoenixframework.org/docs">Get Started</a></li>
-+            <%= link "Register", to: user_path(@conn, :new) %>
++            <li><%= link "Register", to: user_path(@conn, :new) %></li>
            </ul>
          </nav>
          <span class="logo"></span>
 ```
 
-## Session controller.
+## Registration
 
-This next part of Andrei's blog is where we add the session
-controller, including password hasing etc.
+This next part of Andrei's blog is where we add the registration code
+path, including password hashing and validation.
 
 For hasing, add `comeonin` to `./mix.exs`
 ```diff
@@ -315,5 +319,133 @@ index a1c60db..bbe66e7 100644
 We are now
 [here](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#ef37)
 and can register users with hashed passwords.
+
+
+# Session controller
+
+Sessions are managed by `new` which is the login form, `create` which
+is a login request and `delete` which is the logout. Add the route to
+the controller.
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 2c8b88f..3431a53 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -19,6 +19,8 @@ defmodule AuthedApp.Router do
+     get "/", PageController, :index
+
+     resources "/users", UserController, only: [:show, :new, :create]
++
++    resources "/sessions", SessionController, only: [:new, :create, :delete]
+   end
+
+   # Other scopes may use custom stacks.
+```
+
+And add the controller in `web/controllers/session_controller.ex`.
+
+```elixir
+defmodule AuthedApp.SessionController do
+  use AuthedApp.Web, :controller
+
+  plug :scrub_params, "session" when action in [:create]
+
+  def new(conn, _params) do
+    render(conn, "new.html")
+  end
+
+  def create(conn, %{"session" => %{"email" => email, "password" => password}}) do
+    # tbd
+  end
+
+  def delete(conn, _params) do
+    # tbd
+  end
+end
+```
+
+a corresponding view module in `web/views/session_view.ex`
+
+```elixir
+defmodule AuthedApp.SessionView do
+  use AuthedApp.Web, :view
+end
+```
+
+and the login template in `web/templates/session/new.html.eex`:
+
+```html
+<h1>Sign in</h1>
+<%= form_for @conn, session_path(@conn, :create),
+                                          [as: :session], fn f -> %>
+  <div class="form-group">
+    <%= text_input f, :email, placeholder: "Email",
+                              class: "form-control" %>
+  </div>
+  <div class="form-group">
+    <%= password_input f, :password, placeholder: "Password",
+                                     class: "form-control" %>
+  </div>
+  <%= submit "Sign in", class: "btn btn-primary" %>
+<% end %>
+```
+
+We can test it by calling curl to get the login page (and the csrf token that phoenix automagically gives us).
+
+Start the service
+```bash
+mix phoenix.server
+```
+
+Get the login page plus cookie and csrf token
+
+```bash
+curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
+...
+<form accept-charset="UTF-8" action="/sessions" method="post"><input name="_csrf_token" type="hidden" value="eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw=="><input name="_utf8" type="hidden" value="✓">  <div class="form-group">
+<input class="form-control" id="session_email" name="session[email]" placeholder="Email" type="text">  </div>
+  <div class="form-group">
+<input class="form-control" id="session_password" name="session[password]" placeholder="Password" type="password">  </div>
+<button class="btn btn-primary" type="submit">Sign in</button></form>
+```
+
+```bash
+curl -H "X-HTTP-Method-Override: POST" -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD'  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
+```
+
+This will end with a crash since SessionController's `create` isn't implemented yet:
+```
+[error] #PID<0.463.0> running AuthedApp.Endpoint terminated
+Server: localhost:4000 (http)
+Request: POST /sessions
+** (exit) an exception was raised:
+    ** (RuntimeError) expected action/2 to return a Plug.Conn, all plugs must receive a connection (conn) and return a connection
+```
+
+Extend the app layout to include a signon link in `web/templates/layout/app.html.eex`.
+
+```diff
+diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
+index c3bce30..1837e66 100644
+--- a/web/templates/layout/app.html.eex
++++ b/web/templates/layout/app.html.eex
+@@ -17,6 +17,7 @@
+         <nav role="navigation">
+           <ul class="nav nav-pills pull-right">
+             <li><%= link "Register", to: user_path(@conn, :new) %></li>
++            <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+           </ul>
+         </nav>
+         <span class="logo"></span>
+```
+
+## Implement login with Guardian
+
+We are now [here in Andrei's
+blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#2334)
+and ready to add Guardain to our project, and implement signing in.
+
+
 
 # Ex Machina Tests
