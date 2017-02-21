@@ -936,7 +936,56 @@ index dc9df3a..db9a6a6 100644
      resources "/users", UserController, only: [:show, :new, :create]
 ```
 
-**TODO: add the /users (index) for admins**
+Add the `/users` index endpoint to list users, first we add the handler to UserController in `web/controllers/user_controller.ex`
+
+```diff
+diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
+index 5b36fa1..2719bf7 100644
+--- a/web/controllers/user_controller.ex
++++ b/web/controllers/user_controller.ex
+@@ -29,4 +29,8 @@ defmodule AuthedApp.UserController do
+         render(conn, "new.html", changeset: changeset)
+     end
+   end
++
++  def index(conn, _params) do
++    render(conn, "index.html", users: Repo.all(User))
++  end
+ end
+```
+
+the index template in `web/templates/users/index.html.eex`
+
+```html
+<h2>Users</h2>
+
+<ul>
+  <%= for user <- @users do %>
+      <li><%= user.name %> (<%= user.email %>)</li>
+  <% end %>
+</ul>
+```
+
+and connect the route in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index db9a6a6..8951803 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -27,7 +27,7 @@ defmodule AuthedApp.Router do
+     get "/info", InfoController, :index
+     get "/", PageController, :index
+
+-    resources "/users", UserController, only: [:show, :new, :create]
++    resources "/users", UserController, only: [:show, :new, :create, :index]
+
+     resources "/sessions", SessionController, only: [:new, :create, :delete]
+   end
+```
+
+Now we all the endpoints but not authorisation checks.
+
 
 # Ex Machina Tests
 

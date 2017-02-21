@@ -27,7 +27,7 @@ defmodule AuthedApp.Router do
     get "/info", InfoController, :index
     get "/", PageController, :index
 
-    resources "/users", UserController, only: [:show, :new, :create]
+    resources "/users", UserController, only: [:show, :new, :create, :index]
 
     resources "/sessions", SessionController, only: [:new, :create, :delete]
   end
