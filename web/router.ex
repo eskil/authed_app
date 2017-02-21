@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
     pipe_through [:browser, :with_session]
 
     get "/news", NewsController, :index
+    get "/info", InfoController, :index
     get "/", PageController, :index
 
     resources "/users", UserController, only: [:show, :new, :create]

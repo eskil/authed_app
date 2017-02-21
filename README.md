@@ -892,7 +892,51 @@ index 8964828..dc9df3a 100644
      resources "/users", UserController, only: [:show, :new, :create]
 ```
 
-**TODO: add the /info page, and /users (index) for admins**
+Do the same for an InfoController, add it to `web/controllers/info_controller.ex`
+
+```elixir
+defmodule AuthedApp.InfoController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.html")
+  end
+end
+```
+
+it's corresponding view module in `/web/views/info_view.ex`
+
+```elixir
+defmodule AuthedApp.InfoView do
+  use AuthedApp.Web, :view
+end
+```
+
+and the template in `web/templates/info/index.html.eex`
+
+```html
+<h2>Info</h2>
+<p>No info today</p>
+```
+
+and connect it's route in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index dc9df3a..db9a6a6 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
+     pipe_through [:browser, :with_session]
+
+     get "/news", NewsController, :index
++    get "/info", InfoController, :index
+     get "/", PageController, :index
+
+     resources "/users", UserController, only: [:show, :new, :create]
+```
+
+**TODO: add the /users (index) for admins**
 
 # Ex Machina Tests
 
@@ -900,5 +944,4 @@ index 8964828..dc9df3a 100644
 
 # JSON API
 
-**TODO: add json endpoints for registration, login, logout, news, info
-  and user listing for admins.**
+**TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
