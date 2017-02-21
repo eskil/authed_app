@@ -522,7 +522,8 @@ iex(2)> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map |> elem(1)
 iex(3)>
 ```
 
-YMMV on what kind of key you want to use, we'll just use the 32 oct key for now, so `config/dev.exs` ends up like
+YMMV on what kind of key you want to use, we'll just use the 32 oct
+key (the latter)for now, so `config/dev.exs` ends up like
 
 ```elixir
 config :guardian, Guardian,
@@ -533,7 +534,7 @@ config :guardian, Guardian,
  secret_key: %{"k" => "Bvmi7pm61u-7FYNHw8sR7VaAwyJQboCDPXdWBS3Lxxc", "kty" => "oct"}
 ```
 
-Finally we add the `GuardianSerializer` module in `web/auth/guardian_serializer.ex`
+Finally we add the GuardianSerializer module in `web/auth/guardian_serializer.ex`. This is pretty stock from the [guardian readme](https://github.com/ueberauth/guardian#serializer).
 
 ```elixir
 defmodule AuthedApp.GuardianSerializer do
