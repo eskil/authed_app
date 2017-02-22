@@ -831,6 +831,8 @@ index bbe66e7..5b36fa1 100644
        {:error, changeset} ->
 ```
 
+
+
 ## Session specific pages
 
 We are now [now here in the
@@ -994,7 +996,86 @@ We're still [here in the
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
 and now resume adding the three kinds of authorisation.
 
-**TODO: add**
+We first rearrange our routes so we can use specific pipelines and also put some endpoints behind a `/admin` prefix which is nice.
+
+```bash
+$ mix phoenix.routes
+   news_path  GET     /news          AuthedApp.NewsController :index
+   info_path  GET     /info          AuthedApp.InfoController :index
+   page_path  GET     /              AuthedApp.PageController :index
+   user_path  GET     /users         AuthedApp.UserController :index
+   user_path  GET     /users/new     AuthedApp.UserController :new
+   user_path  GET     /users/:id     AuthedApp.UserController :show
+   user_path  POST    /users         AuthedApp.UserController :create
+session_path  GET     /sessions/new  AuthedApp.SessionController :new
+session_path  POST    /sessions      AuthedApp.SessionController :create
+session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+```
+
+We add two pipelines (`admin_required` and `login_required`) and
+rearrange routes in `web/router.ex` so they're in the right
+pipelines. Note they're nested.
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 8951803..3cf3592 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -19,17 +19,32 @@ defmodule AuthedApp.Router do
+     plug AuthedApp.CurrentUser
+   end
+
++  pipeline :user_required do
++  end
++
++  pipeline :admin_required do
++  end
+
+   scope "/", AuthedApp do
+     pipe_through [:browser, :with_session]
+
+-    get "/news", NewsController, :index
+-    get "/info", InfoController, :index
++    # Public routes.
+     get "/", PageController, :index
+-
+-    resources "/users", UserController, only: [:show, :new, :create, :index]
+-
++    get "/news", NewsController, :index
++    resources "/users", UserController, only: [:show, :new, :create]
+     resources "/sessions", SessionController, only: [:new, :create, :delete]
++
++    scope "/" do
++      # Login required.
++      pipe_through [:user_required]
++      get "/info", InfoController, :index
++
++      scope "/admin", Admin, as: :admin do
++        # Admin account required
++        pipe_through [:admin_required]
++        resources "/users", UserController, only: [:index]
++      end
++    end
+   end
+
+   # Other scopes may use custom stacks.
+```
+
+The routes now look like
+
+```bash
+$ mix phoenix.routes
+      page_path  GET     /              AuthedApp.PageController :index
+      news_path  GET     /news          AuthedApp.NewsController :index
+      user_path  GET     /users/new     AuthedApp.UserController :new
+      user_path  GET     /users/:id     AuthedApp.UserController :show
+      user_path  POST    /users         AuthedApp.UserController :create
+   session_path  GET     /sessions/new  AuthedApp.SessionController :new
+   session_path  POST    /sessions      AuthedApp.SessionController :create
+   session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+      info_path  GET     /info          AuthedApp.InfoController :index
+admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
+```
 
 # Ex Machina Tests
 

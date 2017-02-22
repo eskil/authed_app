@@ -19,17 +19,32 @@ defmodule AuthedApp.Router do
     plug AuthedApp.CurrentUser
   end
 
+  pipeline :user_required do
+  end
+
+  pipeline :admin_required do
+  end
 
   scope "/", AuthedApp do
     pipe_through [:browser, :with_session]
 
-    get "/news", NewsController, :index
-    get "/info", InfoController, :index
+    # Public routes.
     get "/", PageController, :index
-
-    resources "/users", UserController, only: [:show, :new, :create, :index]
-
+    get "/news", NewsController, :index
+    resources "/users", UserController, only: [:show, :new, :create]
     resources "/sessions", SessionController, only: [:new, :create, :delete]
+
+    scope "/" do
+      # Login required.
+      pipe_through [:user_required]
+      get "/info", InfoController, :index
+
+      scope "/admin", Admin, as: :admin do
+        # Admin account required
+        pipe_through [:admin_required]
+        resources "/users", UserController, only: [:index]
+      end
+    end
   end
 
   # Other scopes may use custom stacks.
