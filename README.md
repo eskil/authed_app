@@ -135,14 +135,13 @@ And a route to the users resource.
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 329c6c4..2c8b88f 100644
+index 329c6c4..8c3e8a2 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -17,6 +17,8 @@ defmodule AuthedApp.Router do
+@@ -17,6 +17,7 @@ defmodule AuthedApp.Router do
      pipe_through :browser # Use the default browser stack
 
      get "/", PageController, :index
-+
 +    resources "/users", UserController, only: [:show, :new, :create]
    end
 
@@ -395,14 +394,13 @@ Finally add the controller to routing in `web/router.ex`.
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 2c8b88f..3431a53 100644
+index 8c3e8a2..380cab7 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -19,6 +19,8 @@ defmodule AuthedApp.Router do
-     get "/", PageController, :index
+@@ -18,6 +18,7 @@ defmodule AuthedApp.Router do
 
+     get "/", PageController, :index
      resources "/users", UserController, only: [:show, :new, :create]
-+
 +    resources "/sessions", SessionController, only: [:new, :create, :delete]
    end
 
@@ -631,10 +629,10 @@ other Guardian plugs to verify the session and load the user.
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 3431a53..8964828 100644
+index 380cab7..f55202a 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -13,8 +13,15 @@ defmodule AuthedApp.Router do
+@@ -13,8 +13,14 @@ defmodule AuthedApp.Router do
      plug :accepts, ["json"]
    end
 
@@ -644,12 +642,12 @@ index 3431a53..8964828 100644
 +    plug AuthedApp.CurrentUser
 +  end
 +
-+
    scope "/", AuthedApp do
 -    pipe_through :browser # Use the default browser stack
 +    pipe_through [:browser, :with_session]
 
      get "/", PageController, :index
+     resources "/users", UserController, only: [:show, :new, :create]
 ```
 
 And then the sign-out by implementing SessionController's `delete` in `web/controllers/session_controller.ex`
@@ -882,17 +880,17 @@ and connect it's route in `web/router.ex`
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 8964828..dc9df3a 100644
+index f55202a..f6cbcd3 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -23,6 +23,7 @@ defmodule AuthedApp.Router do
-   scope "/", AuthedApp do
-     pipe_through [:browser, :with_session]
-
-+    get "/news", NewsController, :index
+@@ -25,6 +25,7 @@ defmodule AuthedApp.Router do
      get "/", PageController, :index
-
      resources "/users", UserController, only: [:show, :new, :create]
+     resources "/sessions", SessionController, only: [:new, :create, :delete]
++    get "/news", NewsController, :index
+   end
+
+   # Other scopes may use custom stacks.
 ```
 
 Do the same for an InfoController, add it to `web/controllers/info_controller.ex`
@@ -926,17 +924,17 @@ and connect it's route in `web/router.ex`
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index dc9df3a..db9a6a6 100644
+index f6cbcd3..d6ba8c7 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
-     pipe_through [:browser, :with_session]
-
+@@ -26,6 +26,7 @@ defmodule AuthedApp.Router do
+     resources "/users", UserController, only: [:show, :new, :create]
+     resources "/sessions", SessionController, only: [:new, :create, :delete]
      get "/news", NewsController, :index
 +    get "/info", InfoController, :index
-     get "/", PageController, :index
+   end
 
-     resources "/users", UserController, only: [:show, :new, :create]
+   # Other scopes may use custom stacks.
 ```
 
 Add the `/users` index endpoint to list users, first we add the handler to UserController in `web/controllers/user_controller.ex`
@@ -973,18 +971,18 @@ and connect the route in `web/router.ex`
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index db9a6a6..8951803 100644
+index d6ba8c7..6828f92 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -27,7 +27,7 @@ defmodule AuthedApp.Router do
-     get "/info", InfoController, :index
-     get "/", PageController, :index
+@@ -23,7 +23,7 @@ defmodule AuthedApp.Router do
+     pipe_through [:browser, :with_session]
 
+     get "/", PageController, :index
 -    resources "/users", UserController, only: [:show, :new, :create]
 +    resources "/users", UserController, only: [:show, :new, :create, :index]
-
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-   end
+     get "/news", NewsController, :index
+     get "/info", InfoController, :index
 ```
 
 Now we all the endpoints but not authorisation checks.
@@ -1000,8 +998,6 @@ We first rearrange our routes so we can use specific pipelines and also put some
 
 ```bash
 $ mix phoenix.routes
-   news_path  GET     /news          AuthedApp.NewsController :index
-   info_path  GET     /info          AuthedApp.InfoController :index
    page_path  GET     /              AuthedApp.PageController :index
    user_path  GET     /users         AuthedApp.UserController :index
    user_path  GET     /users/new     AuthedApp.UserController :new
@@ -1010,6 +1006,8 @@ $ mix phoenix.routes
 session_path  GET     /sessions/new  AuthedApp.SessionController :new
 session_path  POST    /sessions      AuthedApp.SessionController :create
 session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+   news_path  GET     /news          AuthedApp.NewsController :index
+   info_path  GET     /info          AuthedApp.InfoController :index
 ```
 
 We add two pipelines (`admin_required` and `login_required`) and
@@ -1075,6 +1073,24 @@ $ mix phoenix.routes
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
       info_path  GET     /info          AuthedApp.InfoController :index
 admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
+```
+
+Or in a diff
+
+```diff
+--- /tmp/routes	2017-02-22 07:48:56.000000000 -0800
++++ /tmp/routes-new	2017-02-22 07:48:11.000000000 -0800
+@@ -1,5 +1,4 @@
+       page_path  GET     /              AuthedApp.PageController :index
+-      user_path  GET     /users         AuthedApp.UserController :index
+       user_path  GET     /users/new     AuthedApp.UserController :new
+       user_path  GET     /users/:id     AuthedApp.UserController :show
+       user_path  POST    /users         AuthedApp.UserController :create
+@@ -8,3 +7,4 @@
+    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+       news_path  GET     /news          AuthedApp.NewsController :index
+       info_path  GET     /info          AuthedApp.InfoController :index
++admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
 # Ex Machina Tests
