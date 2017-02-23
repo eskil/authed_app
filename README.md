@@ -504,7 +504,7 @@ config :guardian, Guardian,
 ```
 
 You can now generate a better secret key, and/or add a
-`config/prod.exs` with a production specific key. To generate the key,
+`config/prod.exs` with a production specific key (preferably not in the file but via env variables or such). To generate the key,
 launch `iex -S mix` and call [JOSE.JWK](https://github.com/bryanjos/joken) directly.
 
 ```bash
