@@ -1,8 +1,6 @@
 defmodule AuthedApp.SessionController do
   use AuthedApp.Web, :controller
 
-  alias AuthedApp.User
-
   plug :scrub_params, "session" when action in [:create]
 
   def new(conn, _params) do

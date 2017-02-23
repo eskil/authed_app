@@ -266,7 +266,7 @@ index 48fb451..741a73f 100644
 +  def registration_changeset(struct, params) do
 +    struct
 +    |> changeset(params)
-+    |> cast(params, [:password], [])
++    |> cast(params, [:password])
 +    |> validate_length(:password, min: 6, max: 100)
 +    |> hash_password
 +  end
@@ -1023,7 +1023,7 @@ index 8951803..3cf3592 100644
      plug AuthedApp.CurrentUser
    end
 
-+  pipeline :user_required do
++  pipeline :login_required do
 +  end
 +
 +  pipeline :admin_required do
@@ -1045,7 +1045,7 @@ index 8951803..3cf3592 100644
 +
 +    scope "/" do
 +      # Login required.
-+      pipe_through [:user_required]
++      pipe_through [:login_required]
 +      get "/info", InfoController, :index
 +
 +      scope "/admin", Admin, as: :admin do
@@ -1091,6 +1091,151 @@ Or in a diff
        news_path  GET     /news          AuthedApp.NewsController :index
        info_path  GET     /info          AuthedApp.InfoController :index
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
+```
+
+Let's provide some links to this and remove some of the marketing
+links in the standard template. First remove the `marketing` div from
+`web/templates/page/index.html.eex`
+
+```diff
+diff --git a/web/templates/page/index.html.eex b/web/templates/page/index.html.eex
+index 8ff4b81..956ce5e 100644
+--- a/web/templates/page/index.html.eex
++++ b/web/templates/page/index.html.eex
+@@ -2,35 +2,3 @@
+   <h2><%= gettext "Welcome to %{name}", name: "Phoenix!" %></h2>
+   <p class="lead">A productive web framework that<br />does not compromise speed and maintainability.</p>
+ </div>
+-
+-<div class="row marketing">
+-  <div class="col-lg-6">
+-    <h4>Resources</h4>
+-    <ul>
+-      <li>
+-        <a href="http://phoenixframework.org/docs/overview">Guides</a>
+-      </li>
+-      <li>
+-        <a href="https://hexdocs.pm/phoenix">Docs</a>
+-      </li>
+-      <li>
+-        <a href="https://github.com/phoenixframework/phoenix">Source</a>
+-      </li>
+-    </ul>
+-  </div>
+-
+-  <div class="col-lg-6">
+-    <h4>Help</h4>
+-    <ul>
+-      <li>
+-        <a href="http://groups.google.com/group/phoenix-talk">Mailing list</a>
+-      </li>
+-      <li>
+-        <a href="http://webchat.freenode.net/?channels=elixir-lang">#elixir-lang on freenode IRC</a>
+-      </li>
+-      <li>
+-        <a href="https://twitter.com/elixirphoenix">@elixirphoenix</a>
+-      </li>
+-    </ul>
+-  </div>
+-</div>
+```
+
+and add some link buttons to the main app template, which wraps all our pages, in `web/templates/layout/app.html.eex`
+
+```diff
+diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
+index 6e61e12..bd0633a 100644
+--- a/web/templates/layout/app.html.eex
++++ b/web/templates/layout/app.html.eex
+@@ -35,6 +35,20 @@
+         <%= render @view_module, @view_template, assigns %>
+       </main>
+
++      <div class="col-lg-6">
++        <h4>Resources</h4>
++        <ul>
++          <%= if @current_user do %>
++            <li>
++              <a href="/info">Info</a>
++            </li>
++          <%= end %>
++          <li>
++            <a href="/news">News</a>
++          </li>
++        </ul>
++      </div>
++
+     </div> <!-- /container -->
+     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+   </body>
+```
+
+Now if you access `/info` without being logged in, you should be
+redirected to the login page, and you'll only see the `/info` link on
+the home page if you're logged in.
+
+I'll skip the `action/2` [over
+ride]https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
+of a
+[controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
+that Andrei does, since I'm interested in the routing authorisation
+aspects. But it's a good trick to know. Likewise we won't get into the
+`resources` within `resources` part that he does.
+
+
+## Implemention authorisation pipelines
+
+We extend the `login_required` pipeline to call
+[GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index c468ff7..473d88b 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -20,6 +20,7 @@ defmodule AuthedApp.Router do
+   end
+
+   pipeline :user_required do
++    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.GuardianErrorHandler
+   end
+
+   pipeline :admin_required do
+```
+
+And we put our handler in `web/auth/guardian_error_handler.ex`
+
+```elixir
+defmodule AuthedApp.GuardianErrorHandler do
+  import AuthedApp.Router.Helpers
+
+  def unauthenticated(conn, _params) do
+    conn
+    |> Phoenix.Controller.put_flash(:error, "You must be signed in to access this page.")
+    |> Phoenix.Controller.redirect(to: session_path(conn, :new))
+  end
+end
+```
+
+
+## Seed
+
+Add the admin seed in `priv/repo/seeds.exs`. This file already exists,
+so we add the following at the end.
+
+```elixir
+alias AuthedApp.Repo
+alias AuthedApp.User
+
+admin_params = %{name: "Admin User",
+                 email: "admin@example.com",
+                 password: "default password",
+                 is_admin: true}
+
+unless Repo.get_by(User, email: admin_params[:email]) do
+  User.registration_changeset(%User{}, admin_params)
+  |> Repo.insert!
+end
 ```
 
 # Ex Machina Tests

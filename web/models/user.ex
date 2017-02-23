@@ -29,7 +29,7 @@ defmodule AuthedApp.User do
   def registration_changeset(struct, params) do
     struct
     |> changeset(params)
-    |> cast(params, [:password], [])
+    |> cast(params, [:password])
     |> validate_length(:password, min: 6, max: 100)
     |> hash_password
   end

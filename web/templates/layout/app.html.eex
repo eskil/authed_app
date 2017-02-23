@@ -35,6 +35,20 @@
         <%= render @view_module, @view_template, assigns %>
       </main>
 
+      <div class="col-lg-6">
+        <h4>Resources</h4>
+        <ul>
+          <%= if @current_user do %>
+            <li>
+              <a href="/info">Info</a>
+            </li>
+          <%= end %>
+          <li>
+            <a href="/news">News</a>
+          </li>
+        </ul>
+      </div>
+
     </div> <!-- /container -->
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>
