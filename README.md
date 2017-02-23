@@ -1170,6 +1170,8 @@ index 6e61e12..bd0633a 100644
    </body>
 ```
 
+**TODO: move these, and the signin/register/title nav thing into a SharedView component and render separately**
+
 Now if you access `/info` without being logged in, you should be
 redirected to the login page, and you'll only see the `/info` link on
 the home page if you're logged in.
