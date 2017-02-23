@@ -1185,7 +1185,7 @@ aspects. But it's a good trick to know. Likewise we won't get into the
 
 ## Implemention authorisation pipelines
 
-We extend the `login_required` pipeline to call
+We extend the `user_required` pipeline to call
 [GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
 
 ```diff
@@ -1208,15 +1208,64 @@ And we put our handler in `web/auth/guardian_error_handler.ex`
 ```elixir
 defmodule AuthedApp.GuardianErrorHandler do
   import AuthedApp.Router.Helpers
+  import Phoenix.Controller
 
   def unauthenticated(conn, _params) do
     conn
-    |> Phoenix.Controller.put_flash(:error, "You must be signed in to access this page.")
-    |> Phoenix.Controller.redirect(to: session_path(conn, :new))
+    |> put_flash(:error, "You must be signed in to access this page.")
+    |> redirect(to: session_path(conn, :new))
   end
 end
 ```
 
+And extend the `admin_required` pipeline by calling a new auth plug
+from `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 7884e29..ef7f7d0 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
+   end
+
+   pipeline :admin_required do
++    plug AuthedApp.CheckAdmin
+   end
+
+   scope "/", AuthedApp do
+```
+
+defined the plug in `web/auth/check_admin.ex`
+
+```elixir
+defmodule AuthedApp.CheckAdmin do
+  import Phoenix.Controller
+  import Plug.Conn
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    current_user = Guardian.Plug.current_resource(conn)
+    if current_user.is_admin do
+      conn
+    else
+      conn
+      |> put_status(:not_found)
+      |> render(AuthedApp.ErrorView, "404.html")
+      |> halt
+    end
+  end
+end
+```
+
+Now a logged in user trying to access `/admin/users` will get a 404
+not found, and a non-logged in user will get a 404.
+
+
+**TODO: currently admin fails since it's AuthedApp.Admin.UserController, remove ", Admin" from router.ex**
+
+**TODO: go back and also add a /users shortcut for admins to bottom of page**
 
 ## Seed
 

@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
   end
 
   pipeline :admin_required do
+    plug AuthedApp.CheckAdmin
   end
 
   scope "/", AuthedApp do
