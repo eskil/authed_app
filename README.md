@@ -1093,6 +1093,53 @@ Or in a diff
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
+Now remove the `index` handler from `UserController` and move it into a `web/admin/user_controller.ex`
+
+```elixir
+defmodule AuthedApp.Admin.UserController do
+  use AuthedApp.Web, :controller
+
+  alias AuthedApp.User
+
+  def index(conn, _params) do
+    render(conn, "index.html", users: Repo.all(User))
+  end
+end
+```
+
+```diff
+diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
+index 2719bf7..5b36fa1 100644
+--- a/web/controllers/user_controller.ex
++++ b/web/controllers/user_controller.ex
+@@ -29,8 +29,4 @@ defmodule AuthedApp.UserController do
+         render(conn, "new.html", changeset: changeset)
+     end
+   end
+-
+-  def index(conn, _params) do
+-    render(conn, "index.html", users: Repo.all(User))
+-  end
+ end
+```
+
+We also need to add a new view in `web/views/admin/user_view.ex`
+
+```elixir
+defmodule AuthedApp.Admin.UserView do
+  use AuthedApp.Web, :view
+end
+```
+
+and finally the `web/templates/user/index.html.eex` has to be moved to `web/templates/admin/user.html.eex`
+
+```bash
+mkdir -p web/templates/admin/user
+git mv web/templates/user/index.html.eex web/templates/admin/user/
+```
+
+## Navigation consolidation
+
 Let's provide some links to this and remove some of the marketing
 links in the standard template. First remove the `marketing` div from
 `web/templates/page/index.html.eex`

@@ -29,8 +29,4 @@ defmodule AuthedApp.UserController do
         render(conn, "new.html", changeset: changeset)
     end
   end
-
-  def index(conn, _params) do
-    render(conn, "index.html", users: Repo.all(User))
-  end
 end
