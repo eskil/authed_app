@@ -1548,7 +1548,73 @@ index 1439b4e..1d5a6b8 100644
 +{:ok, _} = Application.ensure_all_started(:ex_machina)
 ```
 
-Ex Machina
+We'll put our Ex Machina factories in `test/support/factory.ex`, and
+initially make a user factory plus a way to make this user admin.
+
+```elixir
+defmodule AuthedApp.Test.Factory do
+  use ExMachina.Ecto, repo: AuthedApp.Repo
+
+  def user_factory do
+    %AuthedApp.User{
+      name: sequence("User Name"),
+      email: sequence(:email, &"email-#{&1}@example.com"),
+      password: sequence("password"),
+      is_admin: false
+    }
+  end
+
+  def make_admin(user) do
+    %{user | is_admin: true}
+  end
+end
+```
+
+In `test/controllers/info_controller_test.exs`, we add a `setup/0`
+method and a second test to assert that accessing `/info` for a
+registered user shows the info page.
+
+```diff
+diff --git a/test/controllers/info_controller_test.exs b/test/controllers/info_controller_test.exs
+index b3a49e0..3cde983 100644
+--- a/test/controllers/info_controller_test.exs
++++ b/test/controllers/info_controller_test.exs
+@@ -1,8 +1,33 @@
+ defmodule AuthedApp.InfoControllerTest do
+   use AuthedApp.ConnCase
+
+-  test "unregistered GET /info redirects to registration", %{conn: conn} do
++  import AuthedApp.Test.Factory
++
++  setup do
++    # Get a connection, see https://hexdocs.pm/phoenix/Phoenix.ConnTest.html#build_conn/0.
++    anon_conn = build_conn()
++    # Use AuthedApp.Test.Factory to insert the user created by user_factory/0.
++    user = insert(:user)
++    # Sign in this user and get the signed in connection.
++    user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
++    # Return ok plus a map of values test functions can match against.
++    {:ok, %{
++        user: user,
++        anon_conn: anon_conn,
++        user_conn: user_conn
++        }
++    }
++  end
++
++  # Note this test uses anon_conn to test unregistered users.
++  test "unregistered GET /info redirects to registration", %{anon_conn: conn} do
+     conn = get conn, info_path(conn, :index)
+     assert redirected_to(conn) == session_path(conn, :new)
+   end
++
++  # Note this test uses user_conn to test registered and signed in users.
++  test "registered GET /info ", %{user_conn: conn} do
++    conn = get conn, info_path(conn, :index)
++    assert html_response(conn, 200) =~ "info today"
++  end
+ end
+```
 
 
 ## JSON API
