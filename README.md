@@ -1143,13 +1143,15 @@ git mv web/templates/user/index.html.eex web/templates/admin/user/
 ```
 
 The user index page will only be available to admin users (after we're
-done). And admin controllers/views now live in `web/controllers/admin`
-and `web/views` respectively, giving us some structure that could be
-used for eg. linting rules.
+done with the next section). And admin controllers/views will now live
+in `web/controllers/admin` and `web/views/admin` respectively, giving
+us some structure that could be used for eg. linting rules.
 
 
 
 ## Implemention authorisation pipelines
+
+### `user_required`
 
 We extend the `user_required` pipeline to call
 [GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
@@ -1184,7 +1186,9 @@ defmodule AuthedApp.GuardianErrorHandler do
 end
 ```
 
-And extend the `admin_required` pipeline by calling a new auth plug
+### `admin_required`
+
+Extend the `admin_required` pipeline by calling a new auth plug
 from `web/router.ex`
 
 ```diff
