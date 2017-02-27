@@ -1138,7 +1138,145 @@ mkdir -p web/templates/admin/user
 git mv web/templates/user/index.html.eex web/templates/admin/user/
 ```
 
+The user index page is now only available to admin users. And admin
+controllers/views now live in `web/controllers/admin` and `web/views`
+respectively, giving us some solid structure that could be used for
+eg. linting rules.
+
+
+
 ## Navigation consolidation
+
+Let's cleanup the links in the headers/footers a bit by moving them
+into templates. We want the header to be a `header.html.eex` and the
+footer to be a `footer.html.eex`. The purpose is not just to keep the
+files small/isolated, but also to allow for different headers/footers
+for admins/users.
+
+We'll move the navigation links and "marketing" links into two new
+html templates.
+
+In `web/templates/layout/app.html.eex`, replace the links with calls
+to two new functions that we'll define afterwards.
+
+```diff
+diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
+index bd0633a..06fc5a0 100644
+--- a/web/templates/layout/app.html.eex
++++ b/web/templates/layout/app.html.eex
+@@ -14,18 +14,10 @@
+   <body>
+     <div class="container">
+       <header class="header">
+-        <nav role="navigation">
+-          <ul class="nav nav-pills pull-right">
+-            <%= if @current_user do %>
+-              <li><%= @current_user.name %> (<%= @current_user.email %>)</li>
+-              <li><%= link("Sign out", to: session_path(@conn, :delete, @current_user), method: "delete") %></li>
+-            <%= else %>
+-              <li><%= link "Register", to: user_path(@conn, :new) %></li>
+-              <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+-            <%= end %>
+-          </ul>
+-        </nav>
++        <div>
++        <%= navigation_header(assigns) %>
+         <span class="logo"></span>
++        </div>
+       </header>
+
+       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+@@ -35,19 +27,7 @@
+         <%= render @view_module, @view_template, assigns %>
+       </main>
+
+-      <div class="col-lg-6">
+-        <h4>Resources</h4>
+-        <ul>
+-          <%= if @current_user do %>
+-            <li>
+-              <a href="/info">Info</a>
+-            </li>
+-          <%= end %>
+-          <li>
+-            <a href="/news">News</a>
+-          </li>
+-        </ul>
+-      </div>
++      <%= footer(assigns) %>
+
+     </div> <!-- /container -->
+     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+```
+
+Put the removed template in
+`web/templates/layout/navigation_header.html.eex`
+
+```html
+<nav role="navigation">
+  <ul class="nav nav-pills pull-right">
+    <%= if @current_user do %>
+      <li><%= @current_user.name %>&nbsp;</li>
+      <li><%= link("Sign out", to: session_path(@conn, :delete, @current_user), method: "delete") %></li>
+    <%= else %>
+      <li><%= link "Register", to: user_path(@conn, :new) %></li>
+      <li><%= link "Sign in", to: session_path(@conn, :new) %></li>
+    <%= end %>
+  </ul>
+</nav>
+```
+
+and `web/templates/layout/footer.html.eex`, where we also add a column
+of links for admins.
+
+``html
+<div class="col-lg-6">
+  <h4>Resources</h4>
+  <ul>
+    <%= if @current_user do %>
+      <li>
+        <a href="/info">Info</a>
+      </li>
+    <%= end %>
+    <li>
+      <a href="/news">News</a>
+    </li>
+  </ul>
+</div>
+
+<%= if @current_user && @current_user.is_admin do %>
+  <div class="col-lg-6">
+    <h4>Admin</h4>
+    <ul>
+      <li>
+        <a href="/admin/users">Users</a>
+      </li>
+    </ul>
+  </div>
+<%= end %>
+```
+
+Finally add the two new functions to `web/views/layout_view.ex` since
+this is the view module used here.
+
+```diff
+diff --git a/web/views/layout_view.ex b/web/views/layout_view.ex
+index 8b3cb87..e6d59b5 100644
+--- a/web/views/layout_view.ex
++++ b/web/views/layout_view.ex
+@@ -1,3 +1,11 @@
+ defmodule AuthedApp.LayoutView do
+   use AuthedApp.Web, :view
++
++  def navigation_header(assigns) do
++    render("navigation_header.html", assigns)
++  end
++
++  def footer(assigns) do
++    render("footer.html", assigns)
++  end
+ end
+```
 
 Let's provide some links to this and remove some of the marketing
 links in the standard template. First remove the `marketing` div from
