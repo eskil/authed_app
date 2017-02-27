@@ -1459,6 +1459,8 @@ will be in your source tree.
 
 ## Ex Machina Tests
 
+### Setup
+
 First off, configure guardian in your `config/test.exs`. Follow the
 steps as earlier to generate a secret ket.
 
@@ -1548,6 +1550,8 @@ index 1439b4e..1d5a6b8 100644
 +{:ok, _} = Application.ensure_all_started(:ex_machina)
 ```
 
+### First factory and test
+
 We'll put our Ex Machina factories in `test/support/factory.ex`, and
 initially make a user factory plus a way to make this user admin.
 
@@ -1615,6 +1619,21 @@ index b3a49e0..3cde983 100644
 +  end
  end
 ```
+
+The test suite is now
+
+```bash
+$ mix test --trace test/controllers/info_controller_test.exs
+
+AuthedApp.InfoControllerTest
+  * test unregistered GET /info redirects to registration (195.4ms)
+  * test registered GET /info  (36.0ms)
+
+
+Finished in 0.3 seconds
+2 tests, 0 failures
+```
+
 
 
 ## JSON API
