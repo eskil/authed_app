@@ -1096,7 +1096,7 @@ Or in a diff
 ```
 
 Now remove the `index` handler from `UserController` and move it into
-a `web/admin/user_controller.ex`
+a new `Admin.UserController` in `web/admin/user_controller.ex`
 
 ```elixir
 defmodule AuthedApp.Admin.UserController do
@@ -1198,6 +1198,28 @@ index 6e61e12..d8305f2 100644
    </body>
 ```
 
+Add the two new functions to `web/views/layout_view.ex` since
+this is the view module used here.
+
+```diff
+diff --git a/web/views/layout_view.ex b/web/views/layout_view.ex
+index 8b3cb87..e6d59b5 100644
+--- a/web/views/layout_view.ex
++++ b/web/views/layout_view.ex
+@@ -1,3 +1,11 @@
+ defmodule AuthedApp.LayoutView do
+   use AuthedApp.Web, :view
++
++  def navigation_header(assigns) do
++    render("navigation_header.html", assigns)
++  end
++
++  def footer(assigns) do
++    render("footer.html", assigns)
++  end
+ end
+```
+
 In `web/templates/page/index.html.eex` remove the "marketing" links
 
 ```diff
@@ -1291,27 +1313,6 @@ news, users) but only visible to the right users.
 <%= end %>
 ```
 
-Finally add the two new functions to `web/views/layout_view.ex` since
-this is the view module used here.
-
-```diff
-diff --git a/web/views/layout_view.ex b/web/views/layout_view.ex
-index 8b3cb87..e6d59b5 100644
---- a/web/views/layout_view.ex
-+++ b/web/views/layout_view.ex
-@@ -1,3 +1,11 @@
- defmodule AuthedApp.LayoutView do
-   use AuthedApp.Web, :view
-+
-+  def navigation_header(assigns) do
-+    render("navigation_header.html", assigns)
-+  end
-+
-+  def footer(assigns) do
-+    render("footer.html", assigns)
-+  end
- end
-```
 
 
 ## Implemention authorisation pipelines
