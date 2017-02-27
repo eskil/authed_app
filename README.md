@@ -1018,61 +1018,68 @@ pipelines. Note they're nested.
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 8951803..3cf3592 100644
+index ea883ee..7325ed5 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -19,17 +19,32 @@ defmodule AuthedApp.Router do
+@@ -19,19 +19,32 @@ defmodule AuthedApp.Router do
      plug AuthedApp.CurrentUser
    end
 
+-  pipeline :with_session do
+-    plug Guardian.Plug.VerifySession
+-    plug Guardian.Plug.LoadResource
 +  pipeline :user_required do
 +  end
 +
 +  pipeline :admin_required do
-+  end
+   end
 
    scope "/", AuthedApp do
      pipe_through [:browser, :with_session]
 
--    get "/news", NewsController, :index
--    get "/info", InfoController, :index
 +    # Public routes.
      get "/", PageController, :index
--
 -    resources "/users", UserController, only: [:show, :new, :create, :index]
--
-+    get "/news", NewsController, :index
 +    resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
+     get "/news", NewsController, :index
+-    get "/info", InfoController, :index
 +
 +    scope "/" do
 +      # Login required.
 +      pipe_through [:user_required]
 +      get "/info", InfoController, :index
++    end
 +
-+      scope "/admin", Admin, as: :admin do
-+        # Admin account required
-+        pipe_through [:admin_required]
-+        resources "/users", UserController, only: [:index]
-+      end
++    scope "/admin", Admin, as: :admin do
++      # Admin account required.
++      pipe_through [:admin_required]
++      resources "/users", UserController, only: [:index]
 +    end
    end
 
    # Other scopes may use custom stacks.
 ```
 
+I choose to move the `/admin` endpoint out into their own scope
+outside the `user_required` pipeline. This is specifically to keep the
+error handled different between the two, namely I want errors in
+`user_required` to redirect to login, but errors for `admin_required`
+to look like 404s.
+
 The routes now look like
 
 ```bash
 $ mix phoenix.routes
+Compiling 17 files (.ex)
       page_path  GET     /              AuthedApp.PageController :index
-      news_path  GET     /news          AuthedApp.NewsController :index
       user_path  GET     /users/new     AuthedApp.UserController :new
       user_path  GET     /users/:id     AuthedApp.UserController :show
       user_path  POST    /users         AuthedApp.UserController :create
    session_path  GET     /sessions/new  AuthedApp.SessionController :new
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+      news_path  GET     /news          AuthedApp.NewsController :index
       info_path  GET     /info          AuthedApp.InfoController :index
 admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
@@ -1080,8 +1087,8 @@ admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 Or in a diff
 
 ```diff
---- /tmp/routes	2017-02-22 07:48:56.000000000 -0800
-+++ /tmp/routes-new	2017-02-22 07:48:11.000000000 -0800
+--- extra-files-for-readme/routes	2017-02-26 22:17:03.000000000 -0800
++++ extra-files-for-readme/routes-new	2017-02-26 22:16:19.000000000 -0800
 @@ -1,5 +1,4 @@
        page_path  GET     /              AuthedApp.PageController :index
 -      user_path  GET     /users         AuthedApp.UserController :index
@@ -1193,13 +1200,14 @@ from `web/router.ex`
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 7884e29..ef7f7d0 100644
+index c0c86a2..06badc1 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
+@@ -24,6 +24,8 @@ defmodule AuthedApp.Router do
    end
 
    pipeline :admin_required do
++    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.Admin.GuardianErrorHandler
 +    plug AuthedApp.CheckAdmin
    end
 
@@ -1225,6 +1233,22 @@ defmodule AuthedApp.CheckAdmin do
       |> render(AuthedApp.ErrorView, "404.html")
       |> halt
     end
+  end
+end
+```
+
+and the admin-specific guarding error handler in `web/auth/admin_guardian_error_handler.ex`
+
+```elixir
+defmodule AuthedApp.Admin.GuardianErrorHandler do
+  import Phoenix.Controller
+  import Plug.Conn
+
+  def unauthenticated(conn, _params) do
+    conn
+    |> put_status(:not_found)
+    |> render(AuthedApp.ErrorView, "404.html")
+    |> halt
   end
 end
 ```
@@ -1634,6 +1658,9 @@ Finished in 0.3 seconds
 2 tests, 0 failures
 ```
 
+### Test admin access
+
+A
 
 
 ## JSON API

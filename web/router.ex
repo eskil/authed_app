@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
   end
 
   pipeline :admin_required do
+    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.Admin.GuardianErrorHandler
     plug AuthedApp.CheckAdmin
   end
 
@@ -40,12 +41,12 @@ defmodule AuthedApp.Router do
       # Login required.
       pipe_through [:login_required]
       get "/info", InfoController, :index
+    end
 
-      scope "/admin", Admin, as: :admin do
-        # Admin account required
-        pipe_through [:admin_required]
-        resources "/users", UserController, only: [:index]
-      end
+    scope "/admin", Admin, as: :admin do
+      # Admin account required
+      pipe_through [:admin_required, :login_required]
+      resources "/users", UserController, only: [:index]
     end
   end
 
