@@ -1241,8 +1241,6 @@ Now a logged in user trying to access `/admin/users` will get a 404
 not found, and a non-logged in user will get a 404.
 
 
-**TODO: currently admin fails since it's AuthedApp.Admin.UserController, remove ", Admin" from router.ex**
-
 
 
 ## Navigation consolidation
