@@ -1233,27 +1233,30 @@ Now if you access `/info` without being logged in, you should be
 redirected to the login page, and you'll only see the `/info` link on
 the home page if you're logged in.
 
-I'll skip the `action/2` [over
-ride](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
+Now a logged in user trying to access `/admin/users` will get a 404
+Not Found, and a non-logged in user will get a 404.
+
+
+I skip the `action/2`
+[override](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
 of a
 [controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
 that Andrei does, since I'm interested in the routing authorisation
 aspects. But it's a good trick to know. Likewise we won't get into the
-`resources` within `resources` part that he does.
-
-Now a logged in user trying to access `/admin/users` will get a 404
-not found, and a non-logged in user will get a 404.
+`resources` within `resources` routing part that he does.
 
 
 
 
 ## Navigation consolidation
 
-Let's quikly cleanup the links in the headers/footers a bit by moving
-them into templates. We want the header to be a `header.html.eex` and
-the footer to be a `footer.html.eex`. The purpose is not just to keep
-the files small/isolated, but also to allow for different
-headers/footers for admins/users with different content.
+Let's cleanup the links in the headers/footers by moving them into
+separate templates.
+
+We want the header to be a `header.html.eex` and the footer to be a
+`footer.html.eex`. The purpose is not just to keep the files
+small/isolated, but also to allow for different headers/footers for
+admins/users with different content.
 
 We'll move the navigation links and "marketing" links into two new
 html templates.
