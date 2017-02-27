@@ -20,17 +20,17 @@ defmodule AuthedApp.Admin.UserControllerTest do
   end
 
   test "unregistered GET /admin/users redirects to registration", %{anon_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert response.status == 404
+    conn = get conn, admin_user_path(conn, :index)
+    assert conn.status == 404
   end
 
   test "user GET /admin/users redirects to registration", %{user_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert response.status == 404
+    conn = get conn, admin_user_path(conn, :index)
+    assert conn.status == 404
   end
 
   test "admin GET /admin/users", %{admin_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert html_response(response, 200) =~ "Users"
+    conn = get conn, admin_user_path(conn, :index)
+    assert html_response(conn, 200) =~ "Users"
   end
 end

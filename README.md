@@ -1688,18 +1688,55 @@ defmodule AuthedApp.Admin.UserControllerTest do
   end
 
   test "unregistered GET /admin/users redirects to registration", %{anon_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert response.status == 404
+    conn = get conn, admin_user_path(conn, :index)
+    assert conn.status == 404
   end
 
   test "user GET /admin/users redirects to registration", %{user_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert response.status == 404
+    conn = get conn, admin_user_path(conn, :index)
+    assert conn.status == 404
   end
 
   test "admin GET /admin/users", %{admin_conn: conn} do
-    response = get conn, admin_user_path(conn, :index)
-    assert html_response(response, 200) =~ "Users"
+    conn = get conn, admin_user_path(conn, :index)
+    assert html_response(conn, 200) =~ "Users"
+  end
+end
+```
+
+Add tests for `SessionController`, here we'll use `POST` with JSON and
+`DELETE` calls. In `test/controllers/session_controller_test.exs`:
+
+```elixir
+defmodule AuthedApp.SessionControllerTest do
+  use AuthedApp.ConnCase
+
+  import AuthedApp.Test.Factory
+
+  setup do
+    user = insert(:user)
+    user_conn = Guardian.Plug.api_sign_in(build_conn(), user, :token)
+    {:ok, %{
+        user: user,
+        user_conn: user_conn,
+        }
+    }
+  end
+
+  test "GET /sessions/new", %{conn: conn} do
+    conn = get(conn, session_path(conn, :new))
+    assert html_response(conn, 200) =~ "Sign in"
+  end
+
+  test "POST /sessions/new", %{conn: conn} do
+    conn = post(conn, session_path(conn, :create),
+                %{"session" => %{"email" => "foo", "password" => "bar"}})
+    assert html_response(conn, 200) =~ "Sign in"
+  end
+
+  test "DELETE /sessions/:id", %{conn: conn, user: user} do
+    conn = delete(conn, session_path(conn, :delete, user.id))
+    assert redirected_to(conn) == page_path(conn, :index)
   end
 end
 ```
