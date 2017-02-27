@@ -1,4 +1,4 @@
-# User and Admin auth with ex machina tests
+# User and Admin auth with ex machina tests and json api
 
 I'm going to go through [this excellent blog post by Andrei
 Chernykh](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#.i4w5d87sl)
@@ -7,7 +7,7 @@ to setup a phoenix app with user/admin auth.
 Then I'll extend the project by adding json API endpoints and
 unit-tests using ex machina.
 
-# Let's begin
+## Let's begin
 
 Since the first large part is going through Andrei Chernykh's
 post, I'll keep this bit short and less detailed than his
@@ -18,7 +18,7 @@ all the things, I'm renaming the app from `simple_auth` to
 I recommend reading his blog post, and if you follow that, you
 can basically skip to [the next chapter](#ex-machina-tests).
 
-## Start a phoenix project
+### Start a phoenix project
 
 Create a new blank project and do your initial commit.
 
@@ -31,7 +31,7 @@ git add .
 git commit -m "Initial commit."
 ```
 
-## Add user model
+### Add user model
 
 Create the user model with a bool for admin flag.
 
@@ -104,7 +104,7 @@ Run migration to create the db and users table.
 mix ecto.migrate
 ```
 
-## User controller
+### User controller
 
 Add the initial user controller in
 `web/controllers/user_controller.ex` to handle creating users.
@@ -148,7 +148,7 @@ index 329c6c4..8c3e8a2 100644
    # Other scopes may use custom stacks.
 ```
 
-## User registration form
+### User registration form
 
 Add a view class in `web/views/user_view.ex` for user related matters.
 
@@ -213,7 +213,7 @@ index 7b4e9de..5f9a640 100644
          <span class="logo"></span>
 ```
 
-## Registration
+### Registration
 
 This next part of Andrei's blog is where we add the registration code
 path, including password hashing and validation.
@@ -337,7 +337,7 @@ We are now
 and can register users with hashed passwords.
 
 
-# Session controller
+## Session controller
 
 Sessions are managed by `new` which is the login form, `create` which
 is a login form submit and `delete` which is the logout.
@@ -465,7 +465,7 @@ index c3bce30..1837e66 100644
          <span class="logo"></span>
 ```
 
-## Implement login with Guardian
+### Implement login with Guardian
 
 We are now [here in Andrei's
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#2334)
@@ -699,7 +699,7 @@ index 1837e66..6e61e12 100644
          <span class="logo"></span>
 ```
 
-## Refactoring
+### Refactoring
 
 We're now
 [here in the blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#6687).
@@ -831,7 +831,7 @@ index bbe66e7..5b36fa1 100644
 
 
 
-## Session specific pages
+### Session specific pages
 
 We are now [now here in the
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
@@ -989,7 +989,7 @@ index d6ba8c7..6828f92 100644
 Now we all the endpoints but not authorisation checks.
 
 
-# Authorisation checks on pages
+## Authorisation checks on pages
 
 We're still [here in the
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
@@ -1149,9 +1149,9 @@ us some structure that could be used for eg. linting rules.
 
 
 
-## Implemention authorisation pipelines
+### Implemention authorisation pipelines
 
-### `user_required`
+#### `user_required`
 
 We extend the `user_required` pipeline to call
 [GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
@@ -1186,7 +1186,7 @@ defmodule AuthedApp.GuardianErrorHandler do
 end
 ```
 
-### `admin_required`
+#### `admin_required`
 
 Extend the `admin_required` pipeline by calling a new auth plug
 from `web/router.ex`
@@ -1248,7 +1248,7 @@ aspects. But it's a good trick to know. Likewise we won't get into the
 
 
 
-## Navigation consolidation
+### Navigation consolidation
 
 Let's cleanup the links in the headers/footers by moving them into
 separate templates.
@@ -1298,6 +1298,11 @@ index 6e61e12..d8305f2 100644
      <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
    </body>
 ```
+
+`assigns` is the collection of arguments passed to `render/3`. See
+[the phoenix
+docs](https://hexdocs.pm/phoenix/Phoenix.View.html#functions) for
+more.
 
 Add the two new functions to `web/views/layout_view.ex` since
 this is the view module used here.
@@ -1416,10 +1421,14 @@ news, users) but only visible to the right users.
 
 
 
-## Seed
+### Seed
 
-Add the admin seed in `priv/repo/seeds.exs`. This file already exists,
-so we add the following at the end.
+As
+[Andrei](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#46cc)
+suggets, add the admin seed in `priv/repo/seeds.exs`. This file
+already exists as part of phoenix (see [Seeding
+Data](http://www.phoenixframework.org/docs/seeding-data)], so we add
+the following at the end.
 
 ```elixir
 alias AuthedApp.Repo
@@ -1436,10 +1445,23 @@ unless Repo.get_by(User, email: admin_params[:email]) do
 end
 ```
 
-# Ex Machina Tests
+Insert the seeds into your db
+
+```bash
+mix run priv/repo/seeds.exs
+```
+
+This gives an easy way to create an initial default admin account on
+eg. heroku. But be careful with this, since the login and password
+will be in your source tree.
+
+
+
+## Ex Machina Tests
 
 **TODO: add `ex_machina`, plus test all the login/auth paths.
 
-# JSON API
+
+## JSON API
 
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
