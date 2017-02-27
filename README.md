@@ -1299,6 +1299,11 @@ index 6e61e12..d8305f2 100644
    </body>
 ```
 
+`assigns` is the collection of arguments passed to `render/3`. See
+[the phoenix
+docs](https://hexdocs.pm/phoenix/Phoenix.View.html#functions) for
+more.
+
 Add the two new functions to `web/views/layout_view.ex` since
 this is the view module used here.
 
@@ -1434,6 +1439,12 @@ unless Repo.get_by(User, email: admin_params[:email]) do
   User.registration_changeset(%User{}, admin_params)
   |> Repo.insert!
 end
+```
+
+Insert the seeds into your db
+
+```bash
+mix run priv/repo/seeds.exs
 ```
 
 # Ex Machina Tests
