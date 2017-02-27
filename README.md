@@ -1095,8 +1095,8 @@ Or in a diff
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
-Now remove the `index` handler from `UserController` and move it into
-a new `Admin.UserController` in `web/admin/user_controller.ex`
+Remove the `index` handler from `UserController` and move it into a
+new `Admin.UserController` in `web/admin/user_controller.ex`
 
 ```elixir
 defmodule AuthedApp.Admin.UserController do
@@ -1134,18 +1134,114 @@ defmodule AuthedApp.Admin.UserView do
 end
 ```
 
-and finally the `web/templates/user/index.html.eex` has to be moved to
-`web/templates/admin/user.html.eex`
+And finally the template in `web/templates/user/index.html.eex` has to
+be moved to `web/templates/admin/user.html.eex`
 
 ```bash
 mkdir -p web/templates/admin/user
 git mv web/templates/user/index.html.eex web/templates/admin/user/
 ```
 
-The user index page is now only available to admin users. And admin
-controllers/views now live in `web/controllers/admin` and `web/views`
-respectively, giving us some solid structure that could be used for
-eg. linting rules.
+The user index page will only be available to admin users (after we're
+done). And admin controllers/views now live in `web/controllers/admin`
+and `web/views` respectively, giving us some structure that could be
+used for eg. linting rules.
+
+
+
+## Implemention authorisation pipelines
+
+We extend the `user_required` pipeline to call
+[GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index c468ff7..473d88b 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -20,6 +20,7 @@ defmodule AuthedApp.Router do
+   end
+
+   pipeline :user_required do
++    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.GuardianErrorHandler
+   end
+
+   pipeline :admin_required do
+```
+
+And we put our handler in `web/auth/guardian_error_handler.ex`
+
+```elixir
+defmodule AuthedApp.GuardianErrorHandler do
+  import AuthedApp.Router.Helpers
+  import Phoenix.Controller
+
+  def unauthenticated(conn, _params) do
+    conn
+    |> put_flash(:error, "You must be signed in to access this page.")
+    |> redirect(to: session_path(conn, :new))
+  end
+end
+```
+
+And extend the `admin_required` pipeline by calling a new auth plug
+from `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 7884e29..ef7f7d0 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
+   end
+
+   pipeline :admin_required do
++    plug AuthedApp.CheckAdmin
+   end
+
+   scope "/", AuthedApp do
+```
+
+defined the plug in `web/auth/check_admin.ex`
+
+```elixir
+defmodule AuthedApp.CheckAdmin do
+  import Phoenix.Controller
+  import Plug.Conn
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    current_user = Guardian.Plug.current_resource(conn)
+    if current_user.is_admin do
+      conn
+    else
+      conn
+      |> put_status(:not_found)
+      |> render(AuthedApp.ErrorView, "404.html")
+      |> halt
+    end
+  end
+end
+```
+
+Now if you access `/info` without being logged in, you should be
+redirected to the login page, and you'll only see the `/info` link on
+the home page if you're logged in.
+
+I'll skip the `action/2` [over
+ride](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
+of a
+[controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
+that Andrei does, since I'm interested in the routing authorisation
+aspects. But it's a good trick to know. Likewise we won't get into the
+`resources` within `resources` part that he does.
+
+Now a logged in user trying to access `/admin/users` will get a 404
+not found, and a non-logged in user will get a 404.
+
+
+**TODO: currently admin fails since it's AuthedApp.Admin.UserController, remove ", Admin" from router.ex**
 
 
 
@@ -1314,102 +1410,6 @@ news, users) but only visible to the right users.
 ```
 
 
-
-## Implemention authorisation pipelines
-
-We extend the `user_required` pipeline to call
-[GuardianEnsureAuthenticated](https://github.com/ueberauth/guardian#guardianplugensureauthenticated) in `web/router.ex`
-
-```diff
-diff --git a/web/router.ex b/web/router.ex
-index c468ff7..473d88b 100644
---- a/web/router.ex
-+++ b/web/router.ex
-@@ -20,6 +20,7 @@ defmodule AuthedApp.Router do
-   end
-
-   pipeline :user_required do
-+    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.GuardianErrorHandler
-   end
-
-   pipeline :admin_required do
-```
-
-And we put our handler in `web/auth/guardian_error_handler.ex`
-
-```elixir
-defmodule AuthedApp.GuardianErrorHandler do
-  import AuthedApp.Router.Helpers
-  import Phoenix.Controller
-
-  def unauthenticated(conn, _params) do
-    conn
-    |> put_flash(:error, "You must be signed in to access this page.")
-    |> redirect(to: session_path(conn, :new))
-  end
-end
-```
-
-And extend the `admin_required` pipeline by calling a new auth plug
-from `web/router.ex`
-
-```diff
-diff --git a/web/router.ex b/web/router.ex
-index 7884e29..ef7f7d0 100644
---- a/web/router.ex
-+++ b/web/router.ex
-@@ -24,6 +24,7 @@ defmodule AuthedApp.Router do
-   end
-
-   pipeline :admin_required do
-+    plug AuthedApp.CheckAdmin
-   end
-
-   scope "/", AuthedApp do
-```
-
-defined the plug in `web/auth/check_admin.ex`
-
-```elixir
-defmodule AuthedApp.CheckAdmin do
-  import Phoenix.Controller
-  import Plug.Conn
-
-  def init(opts), do: opts
-
-  def call(conn, _opts) do
-    current_user = Guardian.Plug.current_resource(conn)
-    if current_user.is_admin do
-      conn
-    else
-      conn
-      |> put_status(:not_found)
-      |> render(AuthedApp.ErrorView, "404.html")
-      |> halt
-    end
-  end
-end
-```
-
-Now if you access `/info` without being logged in, you should be
-redirected to the login page, and you'll only see the `/info` link on
-the home page if you're logged in.
-
-I'll skip the `action/2` [over
-ride](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
-of a
-[controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
-that Andrei does, since I'm interested in the routing authorisation
-aspects. But it's a good trick to know. Likewise we won't get into the
-`resources` within `resources` part that he does.
-
-Now a logged in user trying to access `/admin/users` will get a 404
-not found, and a non-logged in user will get a 404.
-
-
-**TODO: currently admin fails since it's AuthedApp.Admin.UserController, remove ", Admin" from router.ex**
-
-**TODO: go back and also add a /users shortcut for admins to bottom of page**
 
 ## Seed
 
