@@ -39,7 +39,9 @@ defmodule AuthedApp.Mixfile do
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
      {:comeonin, "~> 2.5"},
-     {:guardian, "~> 0.14"}]
+     {:guardian, "~> 0.14"},
+     {:ex_machina, "~> 1.0", only: :test}
+    ]
   end
 
   # Aliases are shortcuts or tasks specific to the current project.

@@ -17,3 +17,10 @@ config :authed_app, AuthedApp.Repo,
   database: "authed_app_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :guardian, Guardian,
+ issuer: "AuthedApp.#{Mix.env}",
+ ttl: {30, :days},
+ verify_issuer: true,
+ serializer: AuthedApp.GuardianSerializer,
+ secret_key: %{"k" => "ZXZIgc4ZiRAEeCWwKaI9wKHJ3qC4wjLGltWjWrwrrlk", "kty" => "oct"}

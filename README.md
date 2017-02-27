@@ -1,11 +1,11 @@
-# User and Admin auth with ex machina tests and json api
+# User and Admin auth with Ex Machina tests and JSON API
 
 I'm going to go through [this excellent blog post by Andrei
 Chernykh](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#.i4w5d87sl)
 to setup a phoenix app with user/admin auth.
 
-Then I'll extend the project by adding json API endpoints and
-unit-tests using ex machina.
+Then I'll extend the project by adding JSON API endpoints and
+unit-tests using Ex Machina.
 
 ## Let's begin
 
@@ -1459,7 +1459,96 @@ will be in your source tree.
 
 ## Ex Machina Tests
 
-**TODO: add `ex_machina`, plus test all the login/auth paths.
+First off, configure guardian in your `config/test.exs`. Follow the
+steps as earlier to generate a secret ket.
+
+```diff
+diff --git a/config/test.exs b/config/test.exs
+index 107580c..1488491 100644
+--- a/config/test.exs
++++ b/config/test.exs
+@@ -17,3 +17,10 @@ config :authed_app, AuthedApp.Repo,
+   database: "authed_app_test",
+   hostname: "localhost",
+   pool: Ecto.Adapters.SQL.Sandbox
++
++config :guardian, Guardian,
++ issuer: "AuthedApp.#{Mix.env}",
++ ttl: {30, :days},
++ verify_issuer: true,
++ serializer: AuthedApp.GuardianSerializer,
++ secret_key: %{"k" => "ZXZIgc4ZiRAEeCWwKaI9wKHJ3qC4wjLGltWjWrwrrlk", "kty" => "oct"}
+```
+
+
+Let's write a test case to ensure that `/info` is only available for
+logged in users.
+
+```elixir
+defmodule AuthedApp.InfoControllerTest do
+  use AuthedApp.ConnCase
+
+  test "unregistered GET /info redirects to registration", %{conn: conn} do
+    conn = get conn, info_path(conn, :index)
+    assert redirected_to(conn) == session_path(conn, :new)
+  end
+end
+```
+
+and run it
+
+```bash
+$ mix test --trace test/controllers/info_controller_test.exs
+
+AuthedApp.InfoControllerTest
+  * test unregistered GET /info redirects to registration (31.9ms)
+
+
+Finished in 0.08 seconds
+1 test, 0 failures
+```
+
+We'll want to extend the test to include registered users, and we'll
+eventually want to test `/admin/users` too, so we'll want to test both
+non-admin and admin users. This is where [Ex
+Machina](https://github.com/thoughtbot/ex_machina) comes in. It's an
+excellent library for implementing factories for unit-test
+fixtures. Follow [the
+instructions](https://hexdocs.pm/ex_machina/readme.html) on how to
+install in test-only, ie. don't run the `ex_machina` application in
+production.
+
+```diff
+diff --git a/mix.exs b/mix.exs
+index fa593ef..a688549 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -39,7 +39,9 @@ defmodule AuthedApp.Mixfile do
+      {:gettext, "~> 0.11"},
+      {:cowboy, "~> 1.0"},
+      {:comeonin, "~> 2.5"},
+-     {:guardian, "~> 0.14"}]
++     {:guardian, "~> 0.14"},
++     {:ex_machina, "~> 1.0", only: :test}
++    ]
+   end
+
+   # Aliases are shortcuts or tasks specific to the current project.
+```
+
+```diff
+diff --git a/test/test_helper.exs b/test/test_helper.exs
+index 1439b4e..1d5a6b8 100644
+--- a/test/test_helper.exs
++++ b/test/test_helper.exs
+@@ -2,3 +2,4 @@ ExUnit.start
+
+ Ecto.Adapters.SQL.Sandbox.mode(AuthedApp.Repo, :manual)
+
++{:ok, _} = Application.ensure_all_started(:ex_machina)
+```
+
+Ex Machina
 
 
 ## JSON API
