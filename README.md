@@ -1444,6 +1444,8 @@ news, users) but only visible to the right users.
 ```
 
 
+** TODO: /users/:id is public to all users**
+
 
 ### Seed
 
@@ -1745,3 +1747,6 @@ end
 ## JSON API
 
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
+
+
+## Add user id encryption
