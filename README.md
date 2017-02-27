@@ -1,4 +1,4 @@
-# 1 - User and Admin auth with ex machina tests
+# User and Admin auth with ex machina tests
 
 I'm going to go through [this excellent blog post by Andrei
 Chernykh](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#.i4w5d87sl)
@@ -7,7 +7,7 @@ to setup a phoenix app with user/admin auth.
 Then I'll extend the project by adding json API endpoints and
 unit-tests using ex machina.
 
-# 2 - Let's begin
+# Let's begin
 
 Since the first large part is going through Andrei Chernykh's
 post, I'll keep this bit short and less detailed than his
@@ -18,7 +18,7 @@ all the things, I'm renaming the app from `simple_auth` to
 I recommend reading his blog post, and if you follow that, you
 can basically skip to [the next chapter](#ex-machina-tests).
 
-## 2.1 - Start a phoenix project
+## Start a phoenix project
 
 Create a new blank project and do your initial commit.
 
@@ -31,7 +31,7 @@ git add .
 git commit -m "Initial commit."
 ```
 
-## 2.2 - Add user model
+## Add user model
 
 Create the user model with a bool for admin flag.
 
@@ -104,7 +104,7 @@ Run migration to create the db and users table.
 mix ecto.migrate
 ```
 
-## 2.3 - User controller
+## User controller
 
 Add the initial user controller in
 `web/controllers/user_controller.ex` to handle creating users.
