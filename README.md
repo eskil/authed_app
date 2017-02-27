@@ -937,7 +937,8 @@ index f6cbcd3..d6ba8c7 100644
    # Other scopes may use custom stacks.
 ```
 
-Add the `/users` index endpoint to list users, first we add the handler to UserController in `web/controllers/user_controller.ex`
+Add the `/users` index endpoint to list users, first we add the
+handler to UserController in `web/controllers/user_controller.ex`
 
 ```diff
 diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
@@ -994,23 +995,24 @@ We're still [here in the
 blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#b9df),
 and now resume adding the three kinds of authorisation.
 
-We first rearrange our routes so we can use specific pipelines and also put some endpoints behind a `/admin` prefix which is nice.
+We first rearrange our routes so we can use specific pipelines and
+also put some endpoints behind a `/admin` prefix which is nice.
 
 ```bash
 $ mix phoenix.routes
-   page_path  GET     /              AuthedApp.PageController :index
-   user_path  GET     /users         AuthedApp.UserController :index
-   user_path  GET     /users/new     AuthedApp.UserController :new
-   user_path  GET     /users/:id     AuthedApp.UserController :show
-   user_path  POST    /users         AuthedApp.UserController :create
-session_path  GET     /sessions/new  AuthedApp.SessionController :new
-session_path  POST    /sessions      AuthedApp.SessionController :create
-session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-   news_path  GET     /news          AuthedApp.NewsController :index
-   info_path  GET     /info          AuthedApp.InfoController :index
+      page_path  GET     /              AuthedApp.PageController :index
+      user_path  GET     /users         AuthedApp.UserController :index
+      user_path  GET     /users/new     AuthedApp.UserController :new
+      user_path  GET     /users/:id     AuthedApp.UserController :show
+      user_path  POST    /users         AuthedApp.UserController :create
+   session_path  GET     /sessions/new  AuthedApp.SessionController :new
+   session_path  POST    /sessions      AuthedApp.SessionController :create
+   session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
+      news_path  GET     /news          AuthedApp.NewsController :index
+      info_path  GET     /info          AuthedApp.InfoController :index
 ```
 
-We add two pipelines (`admin_required` and `login_required`) and
+We add two pipelines (`admin_required` and `user_required`) and
 rearrange routes in `web/router.ex` so they're in the right
 pipelines. Note they're nested.
 
@@ -1023,7 +1025,7 @@ index 8951803..3cf3592 100644
      plug AuthedApp.CurrentUser
    end
 
-+  pipeline :login_required do
++  pipeline :user_required do
 +  end
 +
 +  pipeline :admin_required do
@@ -1045,7 +1047,7 @@ index 8951803..3cf3592 100644
 +
 +    scope "/" do
 +      # Login required.
-+      pipe_through [:login_required]
++      pipe_through [:user_required]
 +      get "/info", InfoController, :index
 +
 +      scope "/admin", Admin, as: :admin do
@@ -1093,7 +1095,8 @@ Or in a diff
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
-Now remove the `index` handler from `UserController` and move it into a `web/admin/user_controller.ex`
+Now remove the `index` handler from `UserController` and move it into
+a `web/admin/user_controller.ex`
 
 ```elixir
 defmodule AuthedApp.Admin.UserController do
@@ -1131,7 +1134,8 @@ defmodule AuthedApp.Admin.UserView do
 end
 ```
 
-and finally the `web/templates/user/index.html.eex` has to be moved to `web/templates/admin/user.html.eex`
+and finally the `web/templates/user/index.html.eex` has to be moved to
+`web/templates/admin/user.html.eex`
 
 ```bash
 mkdir -p web/templates/admin/user
@@ -1147,24 +1151,24 @@ eg. linting rules.
 
 ## Navigation consolidation
 
-Let's cleanup the links in the headers/footers a bit by moving them
-into templates. We want the header to be a `header.html.eex` and the
-footer to be a `footer.html.eex`. The purpose is not just to keep the
-files small/isolated, but also to allow for different headers/footers
-for admins/users.
+Let's quikly cleanup the links in the headers/footers a bit by moving
+them into templates. We want the header to be a `header.html.eex` and
+the footer to be a `footer.html.eex`. The purpose is not just to keep
+the files small/isolated, but also to allow for different
+headers/footers for admins/users with different content.
 
 We'll move the navigation links and "marketing" links into two new
 html templates.
 
-In `web/templates/layout/app.html.eex`, replace the links with calls
-to two new functions that we'll define afterwards.
+In `web/templates/layout/app.html.eex`, replace the sign in/register links with calls
+to a new function `navigation_header` and a `footer` function that we'll define afterwards.
 
 ```diff
 diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
-index bd0633a..06fc5a0 100644
+index 6e61e12..d8305f2 100644
 --- a/web/templates/layout/app.html.eex
 +++ b/web/templates/layout/app.html.eex
-@@ -14,18 +14,10 @@
+@@ -14,17 +14,7 @@
    <body>
      <div class="container">
        <header class="header">
@@ -1179,37 +1183,67 @@ index bd0633a..06fc5a0 100644
 -            <%= end %>
 -          </ul>
 -        </nav>
-+        <div>
 +        <%= navigation_header(assigns) %>
          <span class="logo"></span>
-+        </div>
        </header>
 
-       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
-@@ -35,19 +27,7 @@
+@@ -35,6 +25,8 @@
          <%= render @view_module, @view_template, assigns %>
        </main>
 
--      <div class="col-lg-6">
--        <h4>Resources</h4>
--        <ul>
--          <%= if @current_user do %>
--            <li>
--              <a href="/info">Info</a>
--            </li>
--          <%= end %>
--          <li>
--            <a href="/news">News</a>
--          </li>
--        </ul>
--      </div>
 +      <%= footer(assigns) %>
-
++
      </div> <!-- /container -->
      <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+   </body>
 ```
 
-Put the removed template in
+In `web/templates/page/index.html.eex` remove the "marketing" links
+
+```diff
+diff --git a/web/templates/page/index.html.eex b/web/templates/page/index.html.eex
+index 8ff4b81..956ce5e 100644
+--- a/web/templates/page/index.html.eex
++++ b/web/templates/page/index.html.eex
+@@ -2,35 +2,3 @@
+   <h2><%= gettext "Welcome to %{name}", name: "Phoenix!" %></h2>
+   <p class="lead">A productive web framework that<br />does not compromise speed and maintainability.</p>
+ </div>
+-
+-<div class="row marketing">
+-  <div class="col-lg-6">
+-    <h4>Resources</h4>
+-    <ul>
+-      <li>
+-        <a href="http://phoenixframework.org/docs/overview">Guides</a>
+-      </li>
+-      <li>
+-        <a href="https://hexdocs.pm/phoenix">Docs</a>
+-      </li>
+-      <li>
+-        <a href="https://github.com/phoenixframework/phoenix">Source</a>
+-      </li>
+-    </ul>
+-  </div>
+-
+-  <div class="col-lg-6">
+-    <h4>Help</h4>
+-    <ul>
+-      <li>
+-        <a href="http://groups.google.com/group/phoenix-talk">Mailing list</a>
+-      </li>
+-      <li>
+-        <a href="http://webchat.freenode.net/?channels=elixir-lang">#elixir-lang on freenode IRC</a>
+-      </li>
+-      <li>
+-        <a href="https://twitter.com/elixirphoenix">@elixirphoenix</a>
+-      </li>
+-    </ul>
+-  </div>
+-</div>
+```
+
+Put the removed sign in/register template bits in
 `web/templates/layout/navigation_header.html.eex`
 
 ```html
@@ -1226,10 +1260,11 @@ Put the removed template in
 </nav>
 ```
 
-and `web/templates/layout/footer.html.eex`, where we also add a column
-of links for admins.
+and in `web/templates/layout/footer.html.eex`, we put the marketing
+links, but rewrite them to something more useful, namely the links (info,
+news, users) but only visible to the right users.
 
-``html
+```html
 <div class="col-lg-6">
   <h4>Resources</h4>
   <ul>
@@ -1277,18 +1312,6 @@ index 8b3cb87..e6d59b5 100644
 +  end
  end
 ```
-
-Now if you access `/info` without being logged in, you should be
-redirected to the login page, and you'll only see the `/info` link on
-the home page if you're logged in.
-
-I'll skip the `action/2` [over
-ride]https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
-of a
-[controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
-that Andrei does, since I'm interested in the routing authorisation
-aspects. But it's a good trick to know. Likewise we won't get into the
-`resources` within `resources` part that he does.
 
 
 ## Implemention authorisation pipelines
@@ -1366,6 +1389,18 @@ defmodule AuthedApp.CheckAdmin do
   end
 end
 ```
+
+Now if you access `/info` without being logged in, you should be
+redirected to the login page, and you'll only see the `/info` link on
+the home page if you're logged in.
+
+I'll skip the `action/2` [over
+ride](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#cf42)
+of a
+[controller](https://hexdocs.pm/phoenix/Phoenix.Controller.html#summary)
+that Andrei does, since I'm interested in the routing authorisation
+aspects. But it's a good trick to know. Likewise we won't get into the
+`resources` within `resources` part that he does.
 
 Now a logged in user trying to access `/admin/users` will get a 404
 not found, and a non-logged in user will get a 404.
