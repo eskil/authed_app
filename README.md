@@ -1488,7 +1488,7 @@ will be in your source tree.
 ### Setup
 
 First off, configure guardian in your `config/test.exs`. Follow the
-steps as earlier to generate a secret ket.
+steps as earlier to generate a secret key.
 
 ```diff
 diff --git a/config/test.exs b/config/test.exs
@@ -1689,17 +1689,17 @@ defmodule AuthedApp.Admin.UserControllerTest do
     }
   end
 
-  test "unregistered GET /admin/users redirects to registration", %{anon_conn: conn} do
+  test "GET /admin/users as unregistered redirects to registration", %{anon_conn: conn} do
     conn = get conn, admin_user_path(conn, :index)
     assert conn.status == 404
   end
 
-  test "user GET /admin/users redirects to registration", %{user_conn: conn} do
+  test "GET /admin/users as user redirects to registration", %{user_conn: conn} do
     conn = get conn, admin_user_path(conn, :index)
     assert conn.status == 404
   end
 
-  test "admin GET /admin/users", %{admin_conn: conn} do
+  test "GET /admin/users as admin", %{admin_conn: conn} do
     conn = get conn, admin_user_path(conn, :index)
     assert html_response(conn, 200) =~ "Users"
   end

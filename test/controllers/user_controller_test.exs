@@ -3,6 +3,8 @@ defmodule AuthedApp.UserControllerTest do
 
   import AuthedApp.Test.Factory
 
+  alias AuthedApp.User
+
   setup do
     anon_conn = build_conn()
     user = insert(:user)
@@ -27,8 +29,16 @@ defmodule AuthedApp.UserControllerTest do
 
   test "POST /users", %{conn: conn} do
     conn = post(conn, user_path(conn, :create),
-                %{"user" => %{}})
+                %{"user" =>
+                   %{
+                     "email" => "user@email.com",
+                     "password" => "password",
+                     "name" => "User Name"
+                   }
+                 })
     IO.inspect conn, pretty: true
-    assert redirected_to(conn) == page_path(conn, :index)
+    user = Repo.get_by(User, email: "user@email.com")
+    IO.inspect user, pretty: true
+    assert redirected_to(conn) == user_path(conn, :index)
   end
 end
