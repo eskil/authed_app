@@ -12,6 +12,7 @@ defmodule AuthedApp.UserControllerTest do
     {:ok, %{
         user: user,
         user_conn: user_conn,
+        anon_conn: anon_conn
         }
     }
   end
@@ -36,9 +37,14 @@ defmodule AuthedApp.UserControllerTest do
                      "name" => "User Name"
                    }
                  })
-    IO.inspect conn, pretty: true
     user = Repo.get_by(User, email: "user@email.com")
-    IO.inspect user, pretty: true
-    assert redirected_to(conn) == user_path(conn, :index)
+    # Check a id was assigned, a hashed password.
+    assert user.id && user.password_hash && !user.password
+    assert redirected_to(conn) == user_path(conn, :show, user.id)
+  end
+
+  test "GET /users/:id as anonymous", %{anon_conn: conn, user: user} do
+    conn = get(conn, user_path(conn, :show, user.id))
+    assert html_response(conn, 200) =~ user.name
   end
 end
