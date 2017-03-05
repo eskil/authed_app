@@ -5,13 +5,10 @@ defmodule AuthedApp.Test.Factory do
     %AuthedApp.User{
       name: sequence("User Name"),
       email: sequence(:email, &"email-#{&1}@example.com"),
-      password: sequence("password"),
+      password: "test_password_1",
+      password_hash: "$2b$12$tx.U0eAdCXl0P.48qZyvqehXybAfSMO8ULnbhmzbwmJoI58LuIx9G",
       is_admin: false
     }
-  end
-
-  def with_encrypted_password(user) do
-    %{user | password_hash: Comeonin.Bcrypt.hashpwsalt(user.password)}
   end
 
   def make_admin(user) do

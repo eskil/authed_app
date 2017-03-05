@@ -2062,6 +2062,58 @@ index c84c67a..9d4a35a 100644
 
 Now the tests are back to ~3s on my laptop.
 
+But if we instead want to simply hardcode the password and hash value
+in the fixture, we get the original speed again.
+
+Revert the patch in `test/controllers/session_controller_test.exs`
+
+```diff
+diff --git a/test/controllers/session_controller_test.exs b/test/controllers/session_controller_test.exs
+index 9d4a35a..c84c67a 100644
+--- a/test/controllers/session_controller_test.exs
++++ b/test/controllers/session_controller_test.exs
+@@ -4,7 +4,7 @@ defmodule AuthedApp.SessionControllerTest do
+   import AuthedApp.Test.Factory
+
+   setup do
+-    user = build(:user) |> with_encrypted_password |> insert
++    user = insert(:user)
+     anon_conn = build_conn()
+     user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
+     {:ok, %{
+```
+
+and instead make `test/support/factory.ex`
+
+```diff
+diff --git a/test/support/factory.ex b/test/support/factory.ex
+index b4d0934..b1c4ac4 100644
+--- a/test/support/factory.ex
++++ b/test/support/factory.ex
+@@ -5,15 +5,12 @@ defmodule AuthedApp.Test.Factory do
+     %AuthedApp.User{
+       name: sequence("User Name"),
+       email: sequence(:email, &"email-#{&1}@example.com"),
+-      password: sequence("password"),
++      password: "test_password_1",
++      password_hash: "$2b$12$tx.U0eAdCXl0P.48qZyvqehXybAfSMO8ULnbhmzbwmJoI58LuIx9G",
+       is_admin: false
+     }
+   end
+
+-  def with_encrypted_password(user) do
+-    %{user | password_hash: Comeonin.Bcrypt.hashpwsalt(user.password)}
+-  end
+-
+   def make_admin(user) do
+     %{user | is_admin: true}
+   end
+```
+
+and the tests are back down to <2s. I think it's reasonable approach,
+YMMV and you can always add separate factories for separate test
+cases.
+
 ## JSON API
 
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
