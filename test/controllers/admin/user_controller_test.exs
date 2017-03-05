@@ -19,7 +19,7 @@ defmodule AuthedApp.Admin.UserControllerTest do
     }
   end
 
-  test "GET /admin/users as unregistered redirects to registration", %{anon_conn: conn} do
+  test "GET /admin/users as anonymous redirects to registration", %{anon_conn: conn} do
     conn = get conn, admin_user_path(conn, :index)
     assert conn.status == 404
   end

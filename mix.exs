@@ -10,7 +10,14 @@ defmodule AuthedApp.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      aliases: aliases(),
-     deps: deps()]
+     deps: deps(),
+     test_coverage: [tool: ExCoveralls],
+     preferred_cli_env: [
+       "coveralls": :test,
+       "coveralls.detail": :test,
+       "coveralls.post": :test,
+       "coveralls.html": :test]
+    ]
   end
 
   # Configuration for the OTP application.
@@ -40,7 +47,8 @@ defmodule AuthedApp.Mixfile do
      {:cowboy, "~> 1.0"},
      {:comeonin, "~> 2.5"},
      {:guardian, "~> 0.14"},
-     {:ex_machina, "~> 1.0", only: :test}
+     {:ex_machina, "~> 1.0", only: :test},
+     {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 

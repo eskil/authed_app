@@ -1509,6 +1509,9 @@ index 107580c..1488491 100644
 ```
 
 
+
+### Start testing
+
 Let's write a test case to ensure that `/info` is only available for
 logged in users.
 
@@ -1613,7 +1616,7 @@ index b3a49e0..3cde983 100644
  defmodule AuthedApp.InfoControllerTest do
    use AuthedApp.ConnCase
 
--  test "unregistered GET /info redirects to registration", %{conn: conn} do
+-  test "GET /info as anonymous redirects to registration", %{conn: conn} do
 +  import AuthedApp.Test.Factory
 +
 +  setup do
@@ -1633,13 +1636,13 @@ index b3a49e0..3cde983 100644
 +  end
 +
 +  # Note this test uses anon_conn to test unregistered users.
-+  test "unregistered GET /info redirects to registration", %{anon_conn: conn} do
++  test "GET /info as anonymous redirects to registration", %{anon_conn: conn} do
      conn = get conn, info_path(conn, :index)
      assert redirected_to(conn) == session_path(conn, :new)
    end
 +
 +  # Note this test uses user_conn to test registered and signed in users.
-+  test "registered GET /info ", %{user_conn: conn} do
++  test "GET /info as user", %{user_conn: conn} do
 +    conn = get conn, info_path(conn, :index)
 +    assert html_response(conn, 200) =~ "info today"
 +  end
@@ -1689,7 +1692,7 @@ defmodule AuthedApp.Admin.UserControllerTest do
     }
   end
 
-  test "GET /admin/users as unregistered redirects to registration", %{anon_conn: conn} do
+  test "GET /admin/users as anonymous redirects to registration", %{anon_conn: conn} do
     conn = get conn, admin_user_path(conn, :index)
     assert conn.status == 404
   end
@@ -1800,9 +1803,127 @@ end
 ```
 
 
+### ExCoveralls
+
+I'll add [excoveralls](https://github.com/parroty/excoveralls), an
+unit-test coverage tool. Like exmachina, it's a `mix.exs` addition.
+
+```diff
+diff --git a/mix.exs b/mix.exs
+index a688549..aa5f1a1 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -10,7 +10,14 @@ defmodule AuthedApp.Mixfile do
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      aliases: aliases(),
+-     deps: deps()]
++     deps: deps(),
++     test_coverage: [tool: ExCoveralls],
++     preferred_cli_env: [
++       "coveralls": :test,
++       "coveralls.detail": :test,
++       "coveralls.post": :test,
++       "coveralls.html": :test]
++    ]
+   end
+
+   # Configuration for the OTP application.
+@@ -40,7 +47,8 @@ defmodule AuthedApp.Mixfile do
+      {:cowboy, "~> 1.0"},
+      {:comeonin, "~> 2.5"},
+      {:guardian, "~> 0.14"},
+-     {:ex_machina, "~> 1.0", only: :test}
++     {:ex_machina, "~> 1.0", only: :test},
++     {:excoveralls, "~> 0.6", only: :test}
+     ]
+   end
+```
+
+And get the deps
+
+```bash
+mix deps.get
+```
+
+ExCoveralls dumps a simple text output when run
+
+```bash
+$ mix coveralls.html
+.................
+
+Finished in 0.7 seconds
+17 tests, 0 failures
+
+Randomized with seed 260773
+----------------
+COV    FILE                                        LINES RELEVANT   MISSED
+ 75.0% lib/authed_app.ex                              31        4        1
+  0.0% lib/authed_app/endpoint.ex                     42        0        0
+  0.0% lib/authed_app/repo.ex                          3        0        0
+  0.0% test/support/channel_case.ex                   43        4        4
+100.0% test/support/conn_case.ex                      44        4        0
+100.0% test/support/factory.ex                        16        3        0
+ 66.7% test/support/model_case.ex                     65        6        2
+100.0% web/auth/admin_guardian_error_handler.ex       11        1        0
+ 22.2% web/auth/auth.ex                               33        9        7
+ 80.0% web/auth/check_admin.ex                        18        5        1
+ 50.0% web/auth/current_user.ex                        9        2        1
+100.0% web/auth/guardian_error_handler.ex             10        1        0
+100.0% web/auth/guardian_serializer.ex                12        1        0
+  0.0% web/channels/user_socket.ex                    37        0        0
+100.0% web/controllers/admin/user_controller.ex        9        1        0
+100.0% web/controllers/info_controller.ex              7        1        0
+  0.0% web/controllers/news_controller.ex              7        1        1
+100.0% web/controllers/page_controller.ex              7        1        0
+ 40.0% web/controllers/session_controller.ex          29        5        3
+100.0% web/controllers/user_controller.ex             32        9        0
+  0.0% web/gettext.ex                                 24        0        0
+100.0% web/models/user.ex                             50        6        0
+ 80.0% web/router.ex                                  57        5        1
+  0.0% web/views/admin/user_view.ex                    3        0        0
+ 80.0% web/views/error_helpers.ex                     40        5        1
+100.0% web/views/error_view.ex                        17        1        0
+  0.0% web/views/info_view.ex                          3        0        0
+100.0% web/views/layout_view.ex                       11        2        0
+  0.0% web/views/news_view.ex                          3        0        0
+  0.0% web/views/page_view.ex                          3        0        0
+  0.0% web/views/session_view.ex                       3        0        0
+  0.0% web/views/user_view.ex                          3        0        0
+  0.0% web/web.ex                                     81        1        1
+[TOTAL]  70.5%
+----------------
+Generating report...
+
+$ open cover/excoveralls.html
+```
+
+This will open the coverage report in a nice html form. Here you can
+easily see two main coverage issues, `NewsController` and
+`SessionController create`.
+
+`NewsController` is trivial since there's no functionality and no
+access control by `web/router.ex`. So add `test/controllers/news_controller_test.exs`
+
+```elixir
+defmodule AuthedApp.NewsControllerTest do
+  use AuthedApp.ConnCase
+
+  test "GET /news", %{conn: conn} do
+    conn = get conn, news_path(conn, :index)
+    assert html_response(conn, 200) =~ "news today"
+  end
+end
+```
+
+Test
+
+
 ## JSON API
 
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
 
 
 ## Add user id encryption
+
+**TODO: ensure primary int keys don't leak**

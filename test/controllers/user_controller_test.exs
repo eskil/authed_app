@@ -38,7 +38,7 @@ defmodule AuthedApp.UserControllerTest do
                    }
                  })
     user = Repo.get_by(User, email: "user@email.com")
-    # Check a id was assigned, a hashed password.
+    # Check a id was assigned, a hashed password and we don't store the password.
     assert user.id && user.password_hash && !user.password
     assert redirected_to(conn) == user_path(conn, :show, user.id)
   end

@@ -20,13 +20,13 @@ defmodule AuthedApp.InfoControllerTest do
   end
 
   # Note this test uses anon_conn to test unregistered users.
-  test "unregistered GET /info redirects to registration", %{anon_conn: conn} do
+  test "GET /info as anonymous redirects to registration", %{anon_conn: conn} do
     conn = get conn, info_path(conn, :index)
     assert redirected_to(conn) == session_path(conn, :new)
   end
 
   # Note this test uses user_conn to test registered and signed in users.
-  test "registered GET /info ", %{user_conn: conn} do
+  test "GET /info as user ", %{user_conn: conn} do
     conn = get conn, info_path(conn, :index)
     assert html_response(conn, 200) =~ "info today"
   end
