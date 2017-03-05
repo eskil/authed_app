@@ -7,10 +7,10 @@ defmodule AuthedApp.Test.Factory do
       email: sequence(:email, &"email-#{&1}@example.com"),
       password: sequence("password"),
       is_admin: false
-    } |> encrypt_password
+    }
   end
 
-  def encrypt_password(user) do
+  def with_encrypted_password(user) do
     %{user | password_hash: Comeonin.Bcrypt.hashpwsalt(user.password)}
   end
 

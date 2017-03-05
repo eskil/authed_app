@@ -4,7 +4,7 @@ defmodule AuthedApp.SessionControllerTest do
   import AuthedApp.Test.Factory
 
   setup do
-    user = insert(:user)
+    user = build(:user) |> with_encrypted_password |> insert
     anon_conn = build_conn()
     user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
     {:ok, %{

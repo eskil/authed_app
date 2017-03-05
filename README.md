@@ -1903,7 +1903,8 @@ easily see two main coverage issues, `NewsController` and
 `SessionController create`.
 
 `NewsController` is trivial since there's no functionality and no
-access control by `web/router.ex`. So add `test/controllers/news_controller_test.exs`
+access control by `web/router.ex`. So add
+`test/controllers/news_controller_test.exs`
 
 ```elixir
 defmodule AuthedApp.NewsControllerTest do
@@ -1916,8 +1917,150 @@ defmodule AuthedApp.NewsControllerTest do
 end
 ```
 
-Test
+The other missing test is the path in `SessionControllerTest` `create`
+that actually logs in a user given email and password. So let's extend
+`test/controllers/session_controller_test.exs` to test the login path,
+using both correct and wrong credentials.
 
+```diff
+diff --git a/test/controllers/session_controller_test.exs b/test/controllers/session_controller_test.exs
+index 705dd44..c84c67a 100644
+--- a/test/controllers/session_controller_test.exs
++++ b/test/controllers/session_controller_test.exs
+@@ -5,10 +5,12 @@ defmodule AuthedApp.SessionControllerTest do
+
+   setup do
+     user = insert(:user)
+-    user_conn = Guardian.Plug.api_sign_in(build_conn(), user, :token)
++    anon_conn = build_conn()
++    user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
+     {:ok, %{
+         user: user,
+         user_conn: user_conn,
++        anon_conn: anon_conn
+         }
+     }
+   end
+@@ -18,10 +20,32 @@ defmodule AuthedApp.SessionControllerTest do
+     assert html_response(conn, 200) =~ "Sign in"
+   end
+
+-  test "POST /sessions/new", %{conn: conn} do
++  test "POST /sessions/new with invalid email", %{anon_conn: conn, user: user} do
+     conn = post(conn, session_path(conn, :create),
+-                %{"session" => %{"email" => "foo", "password" => "bar"}})
+-    assert html_response(conn, 200) =~ "Sign in"
++                %{"session" => %{
++                   "email" => "typo" <> user.email,
++                   "password" => user.password
++                 }})
++    assert html_response(conn, 200) =~ "Invalid email or password"
++  end
++
++  test "POST /sessions/new with invalid password", %{anon_conn: conn, user: user} do
++    conn = post(conn, session_path(conn, :create),
++                %{"session" => %{
++                   "email" => user.email,
++                   "password" => "typo" <> user.password
++                 }})
++    assert html_response(conn, 200) =~ "Invalid email or password"
++  end
++
++  test "POST /sessions/new with valid parameters", %{anon_conn: conn, user: user} do
++    conn = post(conn, session_path(conn, :create),
++                %{"session" => %{
++                   "email" => user.email,
++                   "password" => user.password
++                 }})
++    assert redirected_to(conn) == page_path(conn, :index)
++    assert get_flash(conn) == %{"info" => "You're signed in"}
+   end
+
+   test "DELETE /sessions/:id", %{conn: conn, user: user} do
+```
+
+For this to work, we need to extend the user factory to also store the
+hashed password. So in `test/support/factory.ex` to pipe all user
+instances through a function that hashes the password.
+
+```diff
+diff --git a/test/support/factory.ex b/test/support/factory.ex
+index 3911679..33c235f 100644
+--- a/test/support/factory.ex
++++ b/test/support/factory.ex
+@@ -7,7 +7,11 @@ defmodule AuthedApp.Test.Factory do
+       email: sequence(:email, &"email-#{&1}@example.com"),
+       password: sequence("password"),
+       is_admin: false
+-    }
++    } |> encrypt_password
++  end
++
++  def encrypt_password(user) do
++    %{user | password_hash: Comeonin.Bcrypt.hashpwsalt(user.password)}
+   end
+
+   def make_admin(user) do
+```
+
+Turns out that the password hashing is pretty slow, and adding this to
+all instances of calling the user factory bumps the test time from <2s
+to ~7s on my laptop.
+
+```bash
+$ iex -S mix
+Erlang/OTP 19 [erts-8.2] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+Interactive Elixir (1.4.1) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> :timer.tc(fn -> Enum.each(1..10, fn _ -> Comeonin.Bcrypt.hashpwsalt("foo") end) end)
+{2997733, :ok}
+```
+
+10 calls to hashing takes about 3 seconds.
+
+There's two ways to solve this, either enhance our factories to make
+the encrypted password be optional, or make the factory have a fixed
+password and store the hashed value directly.
+
+The first option looks like these changes to `test/support/factory.ex`
+
+```diff
+diff --git a/test/support/factory.ex b/test/support/factory.ex
+index 33c235f..b4d0934 100644
+--- a/test/support/factory.ex
++++ b/test/support/factory.ex
+@@ -7,10 +7,10 @@ defmodule AuthedApp.Test.Factory do
+       email: sequence(:email, &"email-#{&1}@example.com"),
+       password: sequence("password"),
+       is_admin: false
+-    } |> encrypt_password
++    }
+   end
+
+-  def encrypt_password(user) do
++  def with_encrypted_password(user) do
+     %{user | password_hash: Comeonin.Bcrypt.hashpwsalt(user.password)}
+   end
+```
+
+and `test/controllers/session_controller_test.exs`
+
+```diff
+diff --git a/test/controllers/session_controller_test.exs b/test/controllers/session_controller_test.exs
+index c84c67a..9d4a35a 100644
+--- a/test/controllers/session_controller_test.exs
++++ b/test/controllers/session_controller_test.exs
+@@ -4,7 +4,7 @@ defmodule AuthedApp.SessionControllerTest do
+   import AuthedApp.Test.Factory
+
+   setup do
+-    user = insert(:user)
++    user = build(:user) |> with_encrypted_password |> insert
+     anon_conn = build_conn()
+     user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
+     {:ok, %{
+```
+
+Now the tests are back to ~3s on my laptop.
 
 ## JSON API
 
