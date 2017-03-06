@@ -2086,7 +2086,16 @@ index 9d4a35a..c84c67a 100644
      {:ok, %{
 ```
 
-and instead make `test/support/factory.ex`
+Pick a static password for our default user factory, ala `password0`
+and generate a hash for it.
+
+```bash
+$ iex -S mix
+iex(1)> Comeonin.Bcrypt.hashpwsalt("test_password_1")
+"$2b$12$tx.U0eAdCXl0P.48qZyvqehXybAfSMO8ULnbhmzbwmJoI58LuIx9G"
+```
+
+And fix up `test/support/factory.ex`
 
 ```diff
 diff --git a/test/support/factory.ex b/test/support/factory.ex
