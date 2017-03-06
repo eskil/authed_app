@@ -2134,6 +2134,40 @@ always add separate factories for separate test cases.
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
 
 
+Add routes for our JSON API in `web/router.ex`
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 20bbff7..c0b983c 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -50,8 +50,19 @@ defmodule AuthedApp.Router do
+     end
+   end
+
+-  # Other scopes may use custom stacks.
+-  # scope "/api", AuthedApp do
+-  #   pipe_through :api
+-  # end
++  scope "/api", AuthedApp.API do
++    pipe_through [:api]
++    scope "/v1", V1, as: :v1 do
++      resources "/sessions", SessionController, only: [:create, :delete]
++      get "/news", NewsController, :index
++      scope "/" do
++        pipe_through [:login_required]
++        get "/info", InfoController, :index
++      end
++      scope "/admin", Admin, as: :admin do
++        pipe_through [:admin_required, :login_required]
++        resources "/users", UserController, only: [:index]
++      end
++    end
++  end
+ end
+``
+
+
 ## Add user id encryption
 
 **TODO: ensure primary int keys don't leak**

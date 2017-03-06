@@ -50,8 +50,19 @@ defmodule AuthedApp.Router do
     end
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AuthedApp do
-  #   pipe_through :api
-  # end
+  scope "/api", AuthedApp.API do
+    pipe_through [:api]
+    scope "/v1", V1, as: :v1 do
+      resources "/sessions", SessionController, only: [:create, :delete]
+      get "/news", NewsController, :index
+      scope "/" do
+        pipe_through [:login_required]
+        get "/info", InfoController, :index
+      end
+      scope "/admin", Admin, as: :admin do
+        pipe_through [:admin_required, :login_required]
+        resources "/users", UserController, only: [:index]
+      end
+    end
+  end
 end
