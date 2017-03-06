@@ -1803,9 +1803,9 @@ end
 ```
 
 
-### ExCoveralls
+### Coverage with ExCoveralls
 
-I'll add [excoveralls](https://github.com/parroty/excoveralls), an
+We'll add [excoveralls](https://github.com/parroty/excoveralls), an
 unit-test coverage tool. Like exmachina, it's a `mix.exs` addition.
 
 ```diff
@@ -2110,9 +2110,12 @@ index b4d0934..b1c4ac4 100644
    end
 ```
 
-and the tests are back down to <2s. I think it's reasonable approach,
-YMMV and you can always add separate factories for separate test
-cases.
+and the tests are back down to <2s.
+
+Storing static passwords and hashes is reasonable approach in many
+situations. I won't got into editorial and begin to talk about fast
+unit-tests versus factory induced variety etc.. YMMV and you can
+always add separate factories for separate test cases.
 
 ## JSON API
 
