@@ -2003,6 +2003,9 @@ index 3911679..33c235f 100644
    def make_admin(user) do
 ```
 
+The unit test coverage is now 84.6% and it looks like every line of
+code we added is now covered.
+
 Turns out that the password hashing is pretty slow, and adding this to
 all instances of calling the user factory bumps the test time from <2s
 to ~7s on my laptop.
