@@ -11,6 +11,14 @@ defmodule AuthedApp.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Guardian.Plug.VerifyHeader
+    plug Guardian.Plug.LoadResource
+  end
+
+  pipeline :with_api_session do
+    plug Guardian.Plug.VerifyHeader
+    plug Guardian.Plug.LoadResource
+    plug AuthedApp.CurrentUser
   end
 
   pipeline :with_session do
@@ -51,7 +59,7 @@ defmodule AuthedApp.Router do
   end
 
   scope "/api", AuthedApp.API do
-    pipe_through [:api]
+    pipe_through [:api, :with_api_session]
     scope "/v1", V1, as: :v1 do
       post "/login", SessionController, :login
       get "/news", NewsController, :index
