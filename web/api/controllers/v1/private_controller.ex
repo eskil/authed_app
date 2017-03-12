@@ -1,4 +1,4 @@
-defmodule AuthedApp.API.V1.NewsController do
+defmodule AuthedApp.API.V1.PrivateController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do

@@ -418,7 +418,7 @@ mix phoenix.server
 Get the login page plus cookie and csrf token
 
 ```bash
-curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
+curl --request GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ...
 <form accept-charset="UTF-8" action="/sessions" method="post">
   <input name="_csrf_token" type="hidden"
@@ -435,7 +435,7 @@ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ```
 
 ```bash
-curl -H "X-HTTP-Method-Override: POST" -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD'  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
+curl --header "X-HTTP-Method-Override: POST" --header "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" --request POST --form 'session[email]=test1@example.com' --form 'session[password]=PASSWORD'  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
 ```
 
 This will end with a crash since SessionController's `create` isn't implemented yet:
@@ -1898,9 +1898,9 @@ Generating report...
 $ open cover/excoveralls.html
 ```
 
-This will open the coverage report in a nice html form. Here you can
-easily see two main coverage issues, `NewsController` and
-`SessionController create`.
+This will open the coverage report in a nice html form in addition to
+the default text table. Here you can easily see two main coverage
+issues, `NewsController` and `SessionController create`.
 
 `NewsController` is trivial since there's no functionality and no
 access control by `web/router.ex`. So add
@@ -2138,10 +2138,10 @@ Add routes for our JSON API in `web/router.ex`
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 20bbff7..c0b983c 100644
+index 20bbff7..6d2d6ff 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -50,8 +50,19 @@ defmodule AuthedApp.Router do
+@@ -50,8 +50,20 @@ defmodule AuthedApp.Router do
      end
    end
 
@@ -2152,7 +2152,8 @@ index 20bbff7..c0b983c 100644
 +  scope "/api", AuthedApp.API do
 +    pipe_through [:api]
 +    scope "/v1", V1, as: :v1 do
-+      resources "/sessions", SessionController, only: [:create, :delete]
++      post "/login", SessionController, :login
++      get "/logout", SessionController, :logout
 +      get "/news", NewsController, :index
 +      scope "/" do
 +        pipe_through [:login_required]
@@ -2160,13 +2161,53 @@ index 20bbff7..c0b983c 100644
 +      end
 +      scope "/admin", Admin, as: :admin do
 +        pipe_through [:admin_required, :login_required]
-+        resources "/users", UserController, only: [:index]
++        get "/users", UserController, :index
 +      end
 +    end
 +  end
  end
-``
+```
 
+
+Add news controller to `web/api/controllers/v1/news_controller.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.NewsController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.json", news: "none")
+  end
+end
+```
+
+and it's view module to `web/api/views/v1/news_view.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.NewsView do
+  use AuthedApp.Web, :view
+
+  def render("index.json", %{news: news}) do
+    %{news_today: news}
+  end
+end
+```
+
+```bash
+$ curl localhost:4000/api/v1/news
+{"news_today":"none"}
+```
+
+
+
+
+```bash
+$ curl --verbose --header "Content-Type: applicatiest POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+```
+
+```bash
+$ curl --verbose  http://localhost:4000/api/v1/info
+```
 
 ## Add user id encryption
 

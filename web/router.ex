@@ -62,10 +62,10 @@ defmodule AuthedApp.Router do
     pipe_through [:api, :with_api_session]
     scope "/v1", V1, as: :v1 do
       post "/login", SessionController, :login
-      get "/news", NewsController, :index
+      get "/public", PublicController, :index
       scope "/" do
         pipe_through [:login_required]
-        get "/info", InfoController, :index
+        get "/private", PrivateController, :index
       end
       scope "/admin", Admin, as: :admin do
         pipe_through [:admin_required, :login_required]
