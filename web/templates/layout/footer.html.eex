@@ -3,11 +3,11 @@
   <ul>
     <%= if @current_user do %>
       <li>
-        <a href="/info">Info</a>
+        <a href="/private">Private</a>
       </li>
     <%= end %>
     <li>
-      <a href="/news">News</a>
+      <a href="/public">Public</a>
     </li>
   </ul>
 </div>

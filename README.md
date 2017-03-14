@@ -838,8 +838,8 @@ blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authoriza
 and we'll start to deviate slightly. I won't be adding the posts
 models etc, only the signed in/not signed in/admin distinction.
 
-  * A `/news` page available to all.
-  * A `/info` page only available to signed in users.
+  * A `/public` page available to all.
+  * A `/private` page only available to signed in users.
   * A `/users` page that lists all users, only available to admins.
 
 These will be available from the front page, where we'll replace the
@@ -847,13 +847,13 @@ These will be available from the front page, where we'll replace the
 will only show the links available given the current session.
 
 We already have a UserController that can list the users for the
-`/user` endpoint. We'll add two controllers for `/news` and `/info`.
+`/user` endpoint. We'll add two controllers for `/public` and `/private`.
 
-In `web/controllers/news_controller.ex` (note, you could use `mix
+In `web/controllers/public_controller.ex` (note, you could use `mix
 phoenix.gen.html` for a lot of this, but keeping this explicit).
 
 ```elixir
-defmodule AuthedApp.NewsController do
+defmodule AuthedApp.PublicController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do
@@ -862,17 +862,17 @@ defmodule AuthedApp.NewsController do
 end
 ```
 
-it's corresponding view module in `/web/views/news_view.ex`
+it's corresponding view module in `/web/views/public_view.ex`
 ```elixir
-defmodule AuthedApp.NewsView do
+defmodule AuthedApp.PublicView do
   use AuthedApp.Web, :view
 end
 ```
 
-and the template in `web/templates/news/index.html.eex`
+and the template in `web/templates/public/index.html.eex`
 
 ```html
-<h2>News</h2>
+<h2>Public</h2>
 <p>No news today</p>
 ```
 
@@ -887,16 +887,16 @@ index f55202a..f6cbcd3 100644
      get "/", PageController, :index
      resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-+    get "/news", NewsController, :index
++    get "/public", PublicController, :index
    end
 
    # Other scopes may use custom stacks.
 ```
 
-Do the same for an InfoController, add it to `web/controllers/info_controller.ex`
+Do the same for an PrivateController, add it to `web/controllers/private_controller.ex`
 
 ```elixir
-defmodule AuthedApp.InfoController do
+defmodule AuthedApp.PrivateController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do
@@ -905,18 +905,18 @@ defmodule AuthedApp.InfoController do
 end
 ```
 
-it's corresponding view module in `/web/views/info_view.ex`
+it's corresponding view module in `/web/views/private_view.ex`
 
 ```elixir
-defmodule AuthedApp.InfoView do
+defmodule AuthedApp.PrivateView do
   use AuthedApp.Web, :view
 end
 ```
 
-and the template in `web/templates/info/index.html.eex`
+and the template in `web/templates/private/index.html.eex`
 
 ```html
-<h2>Info</h2>
+<h2>Private</h2>
 <p>No info today</p>
 ```
 
@@ -930,8 +930,8 @@ index f6cbcd3..d6ba8c7 100644
 @@ -26,6 +26,7 @@ defmodule AuthedApp.Router do
      resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
-+    get "/info", InfoController, :index
+     get "/public", PublicController, :index
++    get "/private", PrivateController, :index
    end
 
    # Other scopes may use custom stacks.
@@ -982,8 +982,8 @@ index d6ba8c7..6828f92 100644
 -    resources "/users", UserController, only: [:show, :new, :create]
 +    resources "/users", UserController, only: [:show, :new, :create, :index]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
-     get "/info", InfoController, :index
+     get "/public", PublicController, :index
+     get "/private", PrivateController, :index
 ```
 
 Now we all the endpoints but not authorisation checks.
@@ -1008,8 +1008,8 @@ $ mix phoenix.routes
    session_path  GET     /sessions/new  AuthedApp.SessionController :new
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-      news_path  GET     /news          AuthedApp.NewsController :index
-      info_path  GET     /info          AuthedApp.InfoController :index
+    public_path  GET     /public        AuthedApp.PublicController :index
+   private_path  GET     /private       AuthedApp.PrivateController :index
 ```
 
 We add two pipelines (`admin_required` and `user_required`) and
@@ -1042,13 +1042,13 @@ index ea883ee..7325ed5 100644
 -    resources "/users", UserController, only: [:show, :new, :create, :index]
 +    resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
--    get "/info", InfoController, :index
+     get "/public", PublicController, :index
+-    get "/private", PrivateController, :index
 +
 +    scope "/" do
 +      # Login required.
 +      pipe_through [:user_required]
-+      get "/info", InfoController, :index
++      get "/private", PrivateController, :index
 +    end
 +
 +    scope "/admin", Admin, as: :admin do
@@ -1079,8 +1079,8 @@ Compiling 17 files (.ex)
    session_path  GET     /sessions/new  AuthedApp.SessionController :new
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-      news_path  GET     /news          AuthedApp.NewsController :index
-      info_path  GET     /info          AuthedApp.InfoController :index
+    public_path  GET     /public        AuthedApp.PublicController :index
+   private_path  GET     /private       AuthedApp.PrivateController :index
 admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
@@ -1097,8 +1097,8 @@ Or in a diff
        user_path  POST    /users         AuthedApp.UserController :create
 @@ -8,3 +7,4 @@
     session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-       news_path  GET     /news          AuthedApp.NewsController :index
-       info_path  GET     /info          AuthedApp.InfoController :index
+     public_path  GET     /public        AuthedApp.PublicController :index
+    private_path  GET     /private       AuthedApp.PrivateController :index
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
@@ -1253,8 +1253,8 @@ defmodule AuthedApp.Admin.GuardianErrorHandler do
 end
 ```
 
-Now if you access `/info` without being logged in, you should be
-redirected to the login page, and you'll only see the `/info` link on
+Now if you access `/private` without being logged in, you should be
+redirected to the login page, and you'll only see the `/private` link on
 the home page if you're logged in.
 
 Now a logged in user trying to access `/admin/users` will get a 404
@@ -1413,8 +1413,8 @@ Put the removed sign in/register template bits in
 ```
 
 and in `web/templates/layout/footer.html.eex`, we put the marketing
-links, but rewrite them to something more useful, namely the links (info,
-news, users) but only visible to the right users.
+links, but rewrite them to something more useful, namely the links (private,
+public, users) but only visible to the right users.
 
 ```html
 <div class="col-lg-6">
@@ -1422,11 +1422,11 @@ news, users) but only visible to the right users.
   <ul>
     <%= if @current_user do %>
       <li>
-        <a href="/info">Info</a>
+        <a href="/private">Private</a>
       </li>
     <%= end %>
     <li>
-      <a href="/news">News</a>
+      <a href="/public">Public</a>
     </li>
   </ul>
 </div>
@@ -1512,15 +1512,15 @@ index 107580c..1488491 100644
 
 ### Start testing
 
-Let's write a test case to ensure that `/info` is only available for
+Let's write a test case to ensure that `/private` is only available for
 logged in users.
 
 ```elixir
-defmodule AuthedApp.InfoControllerTest do
+defmodule AuthedApp.PrivateControllerTest do
   use AuthedApp.ConnCase
 
-  test "unregistered GET /info redirects to registration", %{conn: conn} do
-    conn = get conn, info_path(conn, :index)
+  test "unregistered GET /private redirects to registration", %{conn: conn} do
+    conn = get conn, private_path(conn, :index)
     assert redirected_to(conn) == session_path(conn, :new)
   end
 end
@@ -1529,10 +1529,10 @@ end
 and run it
 
 ```bash
-$ mix test --trace test/controllers/info_controller_test.exs
+$ mix test --trace test/controllers/private_controller_test.exs
 
-AuthedApp.InfoControllerTest
-  * test unregistered GET /info redirects to registration (31.9ms)
+AuthedApp.PrivateControllerTest
+  * test unregistered GET /private redirects to registration (31.9ms)
 
 
 Finished in 0.08 seconds
@@ -1603,20 +1603,20 @@ defmodule AuthedApp.Test.Factory do
 end
 ```
 
-In `test/controllers/info_controller_test.exs`, we add a `setup/0`
-method and a second test to assert that accessing `/info` for a
-registered user shows the info page.
+In `test/controllers/private_controller_test.exs`, we add a `setup/0`
+method and a second test to assert that accessing `/private` for a
+registered user shows the private page.
 
 ```diff
-diff --git a/test/controllers/info_controller_test.exs b/test/controllers/info_controller_test.exs
+diff --git a/test/controllers/private_controller_test.exs b/test/controllers/private_controller_test.exs
 index b3a49e0..3cde983 100644
---- a/test/controllers/info_controller_test.exs
-+++ b/test/controllers/info_controller_test.exs
+--- a/test/controllers/private_controller_test.exs
++++ b/test/controllers/private_controller_test.exs
 @@ -1,8 +1,33 @@
- defmodule AuthedApp.InfoControllerTest do
+ defmodule AuthedApp.PrivateControllerTest do
    use AuthedApp.ConnCase
 
--  test "GET /info as anonymous redirects to registration", %{conn: conn} do
+-  test "GET /private as anonymous redirects to registration", %{conn: conn} do
 +  import AuthedApp.Test.Factory
 +
 +  setup do
@@ -1636,14 +1636,14 @@ index b3a49e0..3cde983 100644
 +  end
 +
 +  # Note this test uses anon_conn to test unregistered users.
-+  test "GET /info as anonymous redirects to registration", %{anon_conn: conn} do
-     conn = get conn, info_path(conn, :index)
++  test "GET /private as anonymous redirects to registration", %{anon_conn: conn} do
+     conn = get conn, private_path(conn, :index)
      assert redirected_to(conn) == session_path(conn, :new)
    end
 +
 +  # Note this test uses user_conn to test registered and signed in users.
-+  test "GET /info as user", %{user_conn: conn} do
-+    conn = get conn, info_path(conn, :index)
++  test "GET /private as user", %{user_conn: conn} do
++    conn = get conn, private_path(conn, :index)
 +    assert html_response(conn, 200) =~ "info today"
 +  end
  end
@@ -1652,11 +1652,11 @@ index b3a49e0..3cde983 100644
 The test suite is now
 
 ```bash
-$ mix test --trace test/controllers/info_controller_test.exs
+$ mix test --trace test/controllers/private_controller_test.exs
 
-AuthedApp.InfoControllerTest
-  * test unregistered GET /info redirects to registration (195.4ms)
-  * test registered GET /info  (36.0ms)
+AuthedApp.PrivateControllerTest
+  * test unregistered GET /private redirects to registration (195.4ms)
+  * test registered GET /private  (36.0ms)
 
 
 Finished in 0.3 seconds
@@ -1873,9 +1873,9 @@ COV    FILE                                        LINES RELEVANT   MISSED
 100.0% web/auth/guardian_serializer.ex                12        1        0
   0.0% web/channels/user_socket.ex                    37        0        0
 100.0% web/controllers/admin/user_controller.ex        9        1        0
-100.0% web/controllers/info_controller.ex              7        1        0
-  0.0% web/controllers/news_controller.ex              7        1        1
 100.0% web/controllers/page_controller.ex              7        1        0
+100.0% web/controllers/private_controller.ex           7        1        0
+  0.0% web/controllers/public_controller.ex            7        1        1
  40.0% web/controllers/session_controller.ex          29        5        3
 100.0% web/controllers/user_controller.ex             32        9        0
   0.0% web/gettext.ex                                 24        0        0
@@ -1884,10 +1884,10 @@ COV    FILE                                        LINES RELEVANT   MISSED
   0.0% web/views/admin/user_view.ex                    3        0        0
  80.0% web/views/error_helpers.ex                     40        5        1
 100.0% web/views/error_view.ex                        17        1        0
-  0.0% web/views/info_view.ex                          3        0        0
+  0.0% web/views/private_view.ex                          3        0        0
 100.0% web/views/layout_view.ex                       11        2        0
-  0.0% web/views/news_view.ex                          3        0        0
   0.0% web/views/page_view.ex                          3        0        0
+  0.0% web/views/public_view.ex                        3        0        0
   0.0% web/views/session_view.ex                       3        0        0
   0.0% web/views/user_view.ex                          3        0        0
   0.0% web/web.ex                                     81        1        1
@@ -1900,18 +1900,18 @@ $ open cover/excoveralls.html
 
 This will open the coverage report in a nice html form in addition to
 the default text table. Here you can easily see two main coverage
-issues, `NewsController` and `SessionController create`.
+issues, `PublicController` and `SessionController create`.
 
-`NewsController` is trivial since there's no functionality and no
+`PublicController` is trivial since there's no functionality and no
 access control by `web/router.ex`. So add
-`test/controllers/news_controller_test.exs`
+`test/controllers/public_controller_test.exs`
 
 ```elixir
-defmodule AuthedApp.NewsControllerTest do
+defmodule AuthedApp.PublicControllerTest do
   use AuthedApp.ConnCase
 
-  test "GET /news", %{conn: conn} do
-    conn = get conn, news_path(conn, :index)
+  test "GET /public", %{conn: conn} do
+    conn = get conn, public_path(conn, :index)
     assert html_response(conn, 200) =~ "news today"
   end
 end
@@ -2131,7 +2131,7 @@ always add separate factories for separate test cases.
 
 ## JSON API
 
-**TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
+**TODO: add json endpoints for registration, login, logout, public, private and user listing for admins.**
 
 
 Add routes for our JSON API in `web/router.ex`
@@ -2154,10 +2154,10 @@ index 20bbff7..6d2d6ff 100644
 +    scope "/v1", V1, as: :v1 do
 +      post "/login", SessionController, :login
 +      get "/logout", SessionController, :logout
-+      get "/news", NewsController, :index
++      get "/public", PublicController, :index
 +      scope "/" do
 +        pipe_through [:login_required]
-+        get "/info", InfoController, :index
++        get "/private", PrivateController, :index
 +      end
 +      scope "/admin", Admin, as: :admin do
 +        pipe_through [:admin_required, :login_required]
@@ -2169,10 +2169,10 @@ index 20bbff7..6d2d6ff 100644
 ```
 
 
-Add news controller to `web/api/controllers/v1/news_controller.ex`
+Add public controller to `web/api/controllers/v1/public_controller.ex`
 
 ```elixir
-defmodule AuthedApp.API.V1.NewsController do
+defmodule AuthedApp.API.V1.PublicController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do
@@ -2181,24 +2181,66 @@ defmodule AuthedApp.API.V1.NewsController do
 end
 ```
 
-and it's view module to `web/api/views/v1/news_view.ex`
+and it's view module to `web/api/views/v1/public_view.ex`
 
 ```elixir
-defmodule AuthedApp.API.V1.NewsView do
+defmodule AuthedApp.API.V1.PublicView do
   use AuthedApp.Web, :view
 
   def render("index.json", %{news: news}) do
-    %{news_today: news}
+    %{public_news: news}
   end
 end
 ```
 
 ```bash
-$ curl localhost:4000/api/v1/news
-{"news_today":"none"}
+$ curl localhost:4000/api/v1/public
+{"public_news":"none"}
+```
+
+And ditto for the private controller to `web/api/controllers/v1/private_controller.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.json", news: "none")
+  end
+end
+```
+
+and it's view module to `web/api/views/v1/private_view.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateView do
+  use AuthedApp.Web, :view
+
+  def render("index.json", %{news: news}) do
+    %{private_news: news}
+  end
+end
+```
+
+```bash
+$ curl localhost:4000/api/v1/private
+{"private_news":"none"}
 ```
 
 
+* First add /private /public routes
+* Add /private/public controllers
+* Make guardian error handler handle html/json
+* Show that public works and private doesnt
+* Add /login route
+* Add sesion controller plus changes to auth.ex and user_controller
+* Add login params that session controller needs
+* Add changeset_errors
+* Finally session_view
+* curl login and show private works
+* unit-tests
+* Add /users to routes
+  * Add users controller
 
 
 ```bash
@@ -2206,7 +2248,7 @@ $ curl --verbose --header "Content-Type: applicatiest POST --data '{"email":"tes
 ```
 
 ```bash
-$ curl --verbose  http://localhost:4000/api/v1/info
+$ curl --verbose  http://localhost:4000/api/v1/private
 ```
 
 ## Add user id encryption

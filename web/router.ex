@@ -11,8 +11,6 @@ defmodule AuthedApp.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Guardian.Plug.VerifyHeader
-    plug Guardian.Plug.LoadResource
   end
 
   pipeline :with_api_session do
@@ -43,12 +41,12 @@ defmodule AuthedApp.Router do
     get "/", PageController, :index
     resources "/users", UserController, only: [:show, :new, :create]
     resources "/sessions", SessionController, only: [:new, :create, :delete]
-    get "/news", NewsController, :index
+    get "/public", PublicController, :index
 
     scope "/" do
       # Login required.
       pipe_through [:login_required]
-      get "/info", InfoController, :index
+      get "/private", PrivateController, :index
     end
 
     scope "/admin", Admin, as: :admin do
