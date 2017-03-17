@@ -2131,7 +2131,192 @@ always add separate factories for separate test cases.
 
 ## JSON API
 
+For the next step, we'll make JSON API endpoints for the the existing
+`/public`, `/private`, `/login`, `/signup`, `/admin/users` HTML
+endpoints. It should basically look like
+
+Allow access to public API
+
+```bash
+$ curl localhost:4000/api/v1/public
+...
+< HTTP/1.1 200 OK
+...
+{"public_news":"none"}
+```
+
+Disallow access to private API for unauthenticated users
+
+```bash
+$ curl --verbose localhost:4000/api/v1/private
+...
+< HTTP/1.1 403 Forbidden
+...
+```
+
+Allow signup with field validation.
+
+```bash
+curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
+...
+< HTTP/1.1 400 Bad Request
+...
+{"status":"error", <messages>}
+```
+
+And of course handle signup with valid fields.
+
+```bash
+curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"user@email.com", "password": "password"}' http://localhost:4000/api/v1/signup
+...
+< HTTP/1.1 201 Created
+< authorization: <jwt token>
+< x-expires: <ts>
+...
+```
+
+Logout user.
+
+```bash
+curl --verbose --header "Content-Type: application/json" --header "authorization: <jwt token>" http://localhost:4000/api/v1/logout
+...
+< HTTP/1.1 200 OK
+...
+```
+
+Login should also validate fields.
+
+```bash
+curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/login
+...
+< HTTP/1.1 400 Bad Request
+...
+{"status":"error", <messages>}
+```
+
+And successfully login when fields are ok.
+
+```bash
+curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+...
+< HTTP/1.1 200 OK
+< authorization: <jwt token>
+< x-expires: <ts>
+...
+```
+
+Allow access to private pages for authenticated users.
+
+```bash
+$ curl --verbose --header "Content-Type: application/json" --header "authorization: <jwt token>" localhost:4000/api/v1/private
+...
+< HTTP/1.1 200 OK
+...
+{"private_news":"none"}
+```
+
+
+### Update routes
+
+We need to add a session for api. It's slightly different from
+`:with_session` in that we'll be using the [header
+check](https://hexdocs.pm/guardian/Guardian.Plug.VerifyHeader.html)
+instead of [session
+check](https://hexdocs.pm/guardian/Guardian.Plug.VerifySession.html)
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 20bbff7..5572f49 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -19,6 +19,12 @@ defmodule AuthedApp.Router do
+     plug AuthedApp.CurrentUser
+   end
+
++  pipeline :with_api_session do
++    plug Guardian.Plug.VerifyHeader
++    plug Guardian.Plug.LoadResource
++    plug AuthedApp.CurrentUser
++  end
++
+   pipeline :login_required do
+     plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.GuardianErrorHandler
+   end
+```
+
+Add the routes for the endpoints
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 5572f49..5809eca 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -56,8 +56,21 @@ defmodule AuthedApp.Router do
+     end
+   end
+
+-  # Other scopes may use custom stacks.
+-  # scope "/api", AuthedApp do
+-  #   pipe_through :api
+-  # end
++  scope "/api", AuthedApp.API do
++    pipe_through [:api, :with_api_session]
++    scope "/v1", V1, as: :v1 do
++      post "/signup", SessionController, :signup
++      post "/login", SessionController, :login
++      get "/logout", SessionController, :logout
++      get "/public", PublicController, :index
++      scope "/" do
++        pipe_through [:login_required]
++        get "/private", PrivateController, :index
++      end
++      scope "/admin", Admin, as: :admin do
++        pipe_through [:admin_required]
++        resources "/users", UserController, only: [:index]
++      end
++    end
++  end
+ end
+```
+
+The routes now look like this.
+
+```bash
+$ mix phoenix.routes
+         page_path  GET     /                    AuthedApp.PageController :index
+         user_path  GET     /users/new           AuthedApp.UserController :new
+         user_path  GET     /users/:id           AuthedApp.UserController :show
+         user_path  POST    /users               AuthedApp.UserController :create
+      session_path  GET     /sessions/new        AuthedApp.SessionController :new
+      session_path  POST    /sessions            AuthedApp.SessionController :create
+      session_path  DELETE  /sessions/:id        AuthedApp.SessionController :delete
+         news_path  GET     /news                AuthedApp.NewsController :index
+         info_path  GET     /info                AuthedApp.InfoController :index
+   admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
+   v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
+   v1_session_path  POST    /api/v1/login        AuthedApp.API.V1.SessionController :login
+   v1_session_path  GET     /api/v1/logout       AuthedApp.API.V1.SessionController :logout
+    v1_public_path  GET     /api/v1/public       AuthedApp.API.V1.PublicController :index
+   v1_private_path  GET     /api/v1/private      AuthedApp.API.V1.PrivateController :index
+v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.UserController :index
+```
+
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
+
+* First add /private /public routes
+* Add /private/public controllers
+* Make guardian error handler handle html/json
+* Show that public works and private doesnt
+* Add /login route
+* Add sesion controller plus changes to auth.ex and user_controller
+* Add login params that session controller needs
+* Add changeset_errors
+* Finally session_view
+* curl login and show private works
+* unit-tests
+* Add /users to routes
+  * Add users controller
+
 
 
 ## Add user id encryption
