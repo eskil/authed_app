@@ -19,6 +19,12 @@ defmodule AuthedApp.Router do
     plug AuthedApp.CurrentUser
   end
 
+  pipeline :with_api_session do
+    plug Guardian.Plug.VerifyHeader
+    plug Guardian.Plug.LoadResource
+    plug AuthedApp.CurrentUser
+  end
+
   pipeline :login_required do
     plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.GuardianErrorHandler
   end
@@ -50,8 +56,19 @@ defmodule AuthedApp.Router do
     end
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AuthedApp do
-  #   pipe_through :api
-  # end
+  scope "/api", AuthedApp.API do
+    pipe_through [:api, :with_api_session]
+    scope "/v1", V1, as: :v1 do
+      resources "/sessions", SessionController, only: [:create, :delete]
+      get "/public", PublicController, :index
+      scope "/" do
+        pipe_through [:login_required]
+        get "/private", PrivateController, :index
+      end
+      scope "/admin", Admin, as: :admin do
+        pipe_through [:admin_required]
+        resources "/users", UserController, only: [:index]
+      end
+    end
+  end
 end
