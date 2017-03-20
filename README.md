@@ -2500,9 +2500,40 @@ end
 ```
 
 
+### JSON API account creation and login
+
+Now that we can start adding a `AuthedApp.API.V1.SessionController` to
+allow registration, login and logout.
+
+The first aspect is that we'll need to validate email/password
+parameters. Make a schema in `web/api/v1/models/login_params.ex` that
+we'll use for the validation.
+
+```elixir
+defmodule AuthedApp.API.V1.LoginParams do
+  use AuthedApp.Web, :model
+
+  schema "LoginParams" do
+    field :email, :string
+    field :password, :string
+  end
+
+  @required_fields [:email, :password]
+  @optional_fields []
+
+  def changeset(model, params \\ :empty) do
+    model
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
+  end
+end
+```
+
+
+
+
 **TODO: add json endpoints for registration, login, logout, news, private and user listing for admins.**
 
-* Show that public works and private doesnt
 * Add /login route
 * Add sesion controller plus changes to auth.ex and user_controller
 * Add login params that session controller needs
