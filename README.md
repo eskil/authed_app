@@ -2525,6 +2525,33 @@ defmodule AuthedApp.API.V1.LoginParams do
     model
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
+    |> validate_format(:email, ~r/@/)
+  end
+end
+```
+
+We will need to render the validation errors as dicts to return json. Errors look like
+
+```elixir
+[email: {"has invalid format", [validation: :format]},
+ password: {"can't be blank", [validation: :required]}]
+```
+
+Create `lib/changeset_errors.ex`
+
+```elixir
+defmodule AuthedApp.ChangesetErrors do
+  def errors_to_dict(changeset) do
+    changeset.errors
+    |> Enum.map(fn {k, v} -> %{k => reduce_message(v)} end)
+  end
+
+  defp reduce_message({message, _values}) do
+    message
+  end
+
+  defp reduce_message(message) do
+    message
   end
 end
 ```

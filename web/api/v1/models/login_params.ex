@@ -13,5 +13,6 @@ defmodule AuthedApp.API.V1.LoginParams do
     model
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
+    |> validate_format(:email, ~r/@/)
   end
 end
