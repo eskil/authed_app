@@ -838,7 +838,7 @@ blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authoriza
 and we'll start to deviate slightly. I won't be adding the posts
 models etc, only the signed in/not signed in/admin distinction.
 
-  * A `/news` page available to all.
+  * A `/public` page available to all.
   * A `/info` page only available to signed in users.
   * A `/users` page that lists all users, only available to admins.
 
@@ -847,13 +847,13 @@ These will be available from the front page, where we'll replace the
 will only show the links available given the current session.
 
 We already have a UserController that can list the users for the
-`/user` endpoint. We'll add two controllers for `/news` and `/info`.
+`/user` endpoint. We'll add two controllers for `/public` and `/info`.
 
-In `web/controllers/news_controller.ex` (note, you could use `mix
+In `web/controllers/public_controller.ex` (note, you could use `mix
 phoenix.gen.html` for a lot of this, but keeping this explicit).
 
 ```elixir
-defmodule AuthedApp.NewsController do
+defmodule AuthedApp.PublicController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do
@@ -862,17 +862,17 @@ defmodule AuthedApp.NewsController do
 end
 ```
 
-it's corresponding view module in `/web/views/news_view.ex`
+it's corresponding view module in `/web/views/public_view.ex`
 ```elixir
-defmodule AuthedApp.NewsView do
+defmodule AuthedApp.PublicView do
   use AuthedApp.Web, :view
 end
 ```
 
-and the template in `web/templates/news/index.html.eex`
+and the template in `web/templates/public/index.html.eex`
 
 ```html
-<h2>News</h2>
+<h2>Public</h2>
 <p>No news today</p>
 ```
 
@@ -887,7 +887,7 @@ index f55202a..f6cbcd3 100644
      get "/", PageController, :index
      resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-+    get "/news", NewsController, :index
++    get "/public", PublicController, :index
    end
 
    # Other scopes may use custom stacks.
@@ -930,7 +930,7 @@ index f6cbcd3..d6ba8c7 100644
 @@ -26,6 +26,7 @@ defmodule AuthedApp.Router do
      resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
+     get "/public", PublicController, :index
 +    get "/info", InfoController, :index
    end
 
@@ -982,7 +982,7 @@ index d6ba8c7..6828f92 100644
 -    resources "/users", UserController, only: [:show, :new, :create]
 +    resources "/users", UserController, only: [:show, :new, :create, :index]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
+     get "/public", PublicController, :index
      get "/info", InfoController, :index
 ```
 
@@ -1008,7 +1008,7 @@ $ mix phoenix.routes
    session_path  GET     /sessions/new  AuthedApp.SessionController :new
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-      news_path  GET     /news          AuthedApp.NewsController :index
+    public_path  GET     /public        AuthedApp.PublicController :index
       info_path  GET     /info          AuthedApp.InfoController :index
 ```
 
@@ -1042,7 +1042,7 @@ index ea883ee..7325ed5 100644
 -    resources "/users", UserController, only: [:show, :new, :create, :index]
 +    resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
-     get "/news", NewsController, :index
+     get "/public", PublicController, :index
 -    get "/info", InfoController, :index
 +
 +    scope "/" do
@@ -1079,7 +1079,7 @@ Compiling 17 files (.ex)
    session_path  GET     /sessions/new  AuthedApp.SessionController :new
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-      news_path  GET     /news          AuthedApp.NewsController :index
+    public_path  GET     /public        AuthedApp.PublicController :index
       info_path  GET     /info          AuthedApp.InfoController :index
 admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
@@ -1097,7 +1097,7 @@ Or in a diff
        user_path  POST    /users         AuthedApp.UserController :create
 @@ -8,3 +7,4 @@
     session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
-       news_path  GET     /news          AuthedApp.NewsController :index
+     public_path  GET     /public        AuthedApp.PublicController :index
        info_path  GET     /info          AuthedApp.InfoController :index
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
@@ -1414,7 +1414,7 @@ Put the removed sign in/register template bits in
 
 and in `web/templates/layout/footer.html.eex`, we put the marketing
 links, but rewrite them to something more useful, namely the links (info,
-news, users) but only visible to the right users.
+public, users) but only visible to the right users.
 
 ```html
 <div class="col-lg-6">
@@ -1426,7 +1426,7 @@ news, users) but only visible to the right users.
       </li>
     <%= end %>
     <li>
-      <a href="/news">News</a>
+      <a href="/public">Public</a>
     </li>
   </ul>
 </div>
@@ -1874,8 +1874,8 @@ COV    FILE                                        LINES RELEVANT   MISSED
   0.0% web/channels/user_socket.ex                    37        0        0
 100.0% web/controllers/admin/user_controller.ex        9        1        0
 100.0% web/controllers/info_controller.ex              7        1        0
-  0.0% web/controllers/news_controller.ex              7        1        1
 100.0% web/controllers/page_controller.ex              7        1        0
+  0.0% web/controllers/public_controller.ex            7        1        1
  40.0% web/controllers/session_controller.ex          29        5        3
 100.0% web/controllers/user_controller.ex             32        9        0
   0.0% web/gettext.ex                                 24        0        0
@@ -1886,8 +1886,8 @@ COV    FILE                                        LINES RELEVANT   MISSED
 100.0% web/views/error_view.ex                        17        1        0
   0.0% web/views/info_view.ex                          3        0        0
 100.0% web/views/layout_view.ex                       11        2        0
-  0.0% web/views/news_view.ex                          3        0        0
   0.0% web/views/page_view.ex                          3        0        0
+  0.0% web/views/public_view.ex                        3        0        0
   0.0% web/views/session_view.ex                       3        0        0
   0.0% web/views/user_view.ex                          3        0        0
   0.0% web/web.ex                                     81        1        1
@@ -1899,19 +1899,19 @@ $ open cover/excoveralls.html
 ```
 
 This will open the coverage report in a nice html form. Here you can
-easily see two main coverage issues, `NewsController` and
+easily see two main coverage issues, `PublicController` and
 `SessionController create`.
 
-`NewsController` is trivial since there's no functionality and no
+`PublicController` is trivial since there's no functionality and no
 access control by `web/router.ex`. So add
-`test/controllers/news_controller_test.exs`
+`test/controllers/public_controller_test.exs`
 
 ```elixir
-defmodule AuthedApp.NewsControllerTest do
+defmodule AuthedApp.PublicControllerTest do
   use AuthedApp.ConnCase
 
-  test "GET /news", %{conn: conn} do
-    conn = get conn, news_path(conn, :index)
+  test "GET /public", %{conn: conn} do
+    conn = get conn, public_path(conn, :index)
     assert html_response(conn, 200) =~ "news today"
   end
 end
@@ -2290,7 +2290,7 @@ $ mix phoenix.routes
       session_path  GET     /sessions/new        AuthedApp.SessionController :new
       session_path  POST    /sessions            AuthedApp.SessionController :create
       session_path  DELETE  /sessions/:id        AuthedApp.SessionController :delete
-         news_path  GET     /news                AuthedApp.NewsController :index
+       public_path  GET     /public              AuthedApp.PublicController :index
          info_path  GET     /info                AuthedApp.InfoController :index
    admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
    v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
@@ -2443,11 +2443,9 @@ index 5809eca..c5cc011 100644
 ```
 
 
+
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
 
-* First add /private /public routes
-* Add /private/public controllers
-* Make guardian error handler handle html/json
 * Show that public works and private doesnt
 * Add /login route
 * Add sesion controller plus changes to auth.ex and user_controller

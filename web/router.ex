@@ -50,7 +50,7 @@ defmodule AuthedApp.Router do
     get "/", PageController, :index
     resources "/users", UserController, only: [:show, :new, :create]
     resources "/sessions", SessionController, only: [:new, :create, :delete]
-    get "/news", NewsController, :index
+    get "/public", PublicController, :index
 
     scope "/" do
       # Login required.
