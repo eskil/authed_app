@@ -1,4 +1,4 @@
-defmodule AuthedApp.InfoController do
+defmodule AuthedApp.PrivateController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do

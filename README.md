@@ -839,7 +839,7 @@ and we'll start to deviate slightly. I won't be adding the posts
 models etc, only the signed in/not signed in/admin distinction.
 
   * A `/public` page available to all.
-  * A `/info` page only available to signed in users.
+  * A `/private` page only available to signed in users.
   * A `/users` page that lists all users, only available to admins.
 
 These will be available from the front page, where we'll replace the
@@ -847,7 +847,7 @@ These will be available from the front page, where we'll replace the
 will only show the links available given the current session.
 
 We already have a UserController that can list the users for the
-`/user` endpoint. We'll add two controllers for `/public` and `/info`.
+`/user` endpoint. We'll add two controllers for `/public` and `/private`.
 
 In `web/controllers/public_controller.ex` (note, you could use `mix
 phoenix.gen.html` for a lot of this, but keeping this explicit).
@@ -893,10 +893,10 @@ index f55202a..f6cbcd3 100644
    # Other scopes may use custom stacks.
 ```
 
-Do the same for an InfoController, add it to `web/controllers/info_controller.ex`
+Do the same for an PrivateController, add it to `web/controllers/private_controller.ex`
 
 ```elixir
-defmodule AuthedApp.InfoController do
+defmodule AuthedApp.PrivateController do
   use AuthedApp.Web, :controller
 
   def index(conn, _params) do
@@ -905,18 +905,18 @@ defmodule AuthedApp.InfoController do
 end
 ```
 
-it's corresponding view module in `/web/views/info_view.ex`
+it's corresponding view module in `/web/views/private_view.ex`
 
 ```elixir
-defmodule AuthedApp.InfoView do
+defmodule AuthedApp.PrivateView do
   use AuthedApp.Web, :view
 end
 ```
 
-and the template in `web/templates/info/index.html.eex`
+and the template in `web/templates/private/index.html.eex`
 
 ```html
-<h2>Info</h2>
+<h2>Private</h2>
 <p>No info today</p>
 ```
 
@@ -931,7 +931,7 @@ index f6cbcd3..d6ba8c7 100644
      resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
      get "/public", PublicController, :index
-+    get "/info", InfoController, :index
++    get "/private", PrivateController, :index
    end
 
    # Other scopes may use custom stacks.
@@ -983,7 +983,7 @@ index d6ba8c7..6828f92 100644
 +    resources "/users", UserController, only: [:show, :new, :create, :index]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
      get "/public", PublicController, :index
-     get "/info", InfoController, :index
+     get "/private", PrivateController, :index
 ```
 
 Now we all the endpoints but not authorisation checks.
@@ -1009,7 +1009,7 @@ $ mix phoenix.routes
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
     public_path  GET     /public        AuthedApp.PublicController :index
-      info_path  GET     /info          AuthedApp.InfoController :index
+   private_path  GET     /private       AuthedApp.PrivateController :index
 ```
 
 We add two pipelines (`admin_required` and `user_required`) and
@@ -1043,12 +1043,12 @@ index ea883ee..7325ed5 100644
 +    resources "/users", UserController, only: [:show, :new, :create]
      resources "/sessions", SessionController, only: [:new, :create, :delete]
      get "/public", PublicController, :index
--    get "/info", InfoController, :index
+-    get "/private", PrivateController, :index
 +
 +    scope "/" do
 +      # Login required.
 +      pipe_through [:user_required]
-+      get "/info", InfoController, :index
++      get "/private", PrivateController, :index
 +    end
 +
 +    scope "/admin", Admin, as: :admin do
@@ -1080,7 +1080,7 @@ Compiling 17 files (.ex)
    session_path  POST    /sessions      AuthedApp.SessionController :create
    session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
     public_path  GET     /public        AuthedApp.PublicController :index
-      info_path  GET     /info          AuthedApp.InfoController :index
+   private_path  GET     /private       AuthedApp.PrivateController :index
 admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
@@ -1098,7 +1098,7 @@ Or in a diff
 @@ -8,3 +7,4 @@
     session_path  DELETE  /sessions/:id  AuthedApp.SessionController :delete
      public_path  GET     /public        AuthedApp.PublicController :index
-       info_path  GET     /info          AuthedApp.InfoController :index
+    private_path  GET     /private       AuthedApp.PrivateController :index
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
@@ -1253,8 +1253,8 @@ defmodule AuthedApp.Admin.GuardianErrorHandler do
 end
 ```
 
-Now if you access `/info` without being logged in, you should be
-redirected to the login page, and you'll only see the `/info` link on
+Now if you access `/private` without being logged in, you should be
+redirected to the login page, and you'll only see the `/private` link on
 the home page if you're logged in.
 
 Now a logged in user trying to access `/admin/users` will get a 404
@@ -1413,7 +1413,7 @@ Put the removed sign in/register template bits in
 ```
 
 and in `web/templates/layout/footer.html.eex`, we put the marketing
-links, but rewrite them to something more useful, namely the links (info,
+links, but rewrite them to something more useful, namely the links (private,
 public, users) but only visible to the right users.
 
 ```html
@@ -1422,7 +1422,7 @@ public, users) but only visible to the right users.
   <ul>
     <%= if @current_user do %>
       <li>
-        <a href="/info">Info</a>
+        <a href="/private">Private</a>
       </li>
     <%= end %>
     <li>
@@ -1512,15 +1512,15 @@ index 107580c..1488491 100644
 
 ### Start testing
 
-Let's write a test case to ensure that `/info` is only available for
+Let's write a test case to ensure that `/private` is only available for
 logged in users.
 
 ```elixir
-defmodule AuthedApp.InfoControllerTest do
+defmodule AuthedApp.PrivateControllerTest do
   use AuthedApp.ConnCase
 
-  test "unregistered GET /info redirects to registration", %{conn: conn} do
-    conn = get conn, info_path(conn, :index)
+  test "unregistered GET /private redirects to registration", %{conn: conn} do
+    conn = get conn, private_path(conn, :index)
     assert redirected_to(conn) == session_path(conn, :new)
   end
 end
@@ -1529,10 +1529,10 @@ end
 and run it
 
 ```bash
-$ mix test --trace test/controllers/info_controller_test.exs
+$ mix test --trace test/controllers/private_controller_test.exs
 
-AuthedApp.InfoControllerTest
-  * test unregistered GET /info redirects to registration (31.9ms)
+AuthedApp.PrivateControllerTest
+  * test unregistered GET /private redirects to registration (31.9ms)
 
 
 Finished in 0.08 seconds
@@ -1603,20 +1603,20 @@ defmodule AuthedApp.Test.Factory do
 end
 ```
 
-In `test/controllers/info_controller_test.exs`, we add a `setup/0`
-method and a second test to assert that accessing `/info` for a
-registered user shows the info page.
+In `test/controllers/private_controller_test.exs`, we add a `setup/0`
+method and a second test to assert that accessing `/private` for a
+registered user shows the private page.
 
 ```diff
-diff --git a/test/controllers/info_controller_test.exs b/test/controllers/info_controller_test.exs
+diff --git a/test/controllers/private_controller_test.exs b/test/controllers/private_controller_test.exs
 index b3a49e0..3cde983 100644
---- a/test/controllers/info_controller_test.exs
-+++ b/test/controllers/info_controller_test.exs
+--- a/test/controllers/private_controller_test.exs
++++ b/test/controllers/private_controller_test.exs
 @@ -1,8 +1,33 @@
- defmodule AuthedApp.InfoControllerTest do
+ defmodule AuthedApp.PrivateControllerTest do
    use AuthedApp.ConnCase
 
--  test "GET /info as anonymous redirects to registration", %{conn: conn} do
+-  test "GET /private as anonymous redirects to registration", %{conn: conn} do
 +  import AuthedApp.Test.Factory
 +
 +  setup do
@@ -1636,15 +1636,15 @@ index b3a49e0..3cde983 100644
 +  end
 +
 +  # Note this test uses anon_conn to test unregistered users.
-+  test "GET /info as anonymous redirects to registration", %{anon_conn: conn} do
-     conn = get conn, info_path(conn, :index)
++  test "GET /private as anonymous redirects to registration", %{anon_conn: conn} do
+     conn = get conn, private_path(conn, :index)
      assert redirected_to(conn) == session_path(conn, :new)
    end
 +
 +  # Note this test uses user_conn to test registered and signed in users.
-+  test "GET /info as user", %{user_conn: conn} do
-+    conn = get conn, info_path(conn, :index)
-+    assert html_response(conn, 200) =~ "info today"
++  test "GET /private as user", %{user_conn: conn} do
++    conn = get conn, private_path(conn, :index)
++    assert html_response(conn, 200) =~ "Private"
 +  end
  end
 ```
@@ -1912,7 +1912,7 @@ defmodule AuthedApp.PublicControllerTest do
 
   test "GET /public", %{conn: conn} do
     conn = get conn, public_path(conn, :index)
-    assert html_response(conn, 200) =~ "news today"
+    assert html_response(conn, 200) =~ "Public"
   end
 end
 ```
@@ -2291,7 +2291,7 @@ $ mix phoenix.routes
       session_path  POST    /sessions            AuthedApp.SessionController :create
       session_path  DELETE  /sessions/:id        AuthedApp.SessionController :delete
        public_path  GET     /public              AuthedApp.PublicController :index
-         info_path  GET     /info                AuthedApp.InfoController :index
+      private_path  GET     /private             AuthedApp.PrivateController :index
    admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
    v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
    v1_session_path  POST    /api/v1/login        AuthedApp.API.V1.SessionController :login
@@ -2444,7 +2444,7 @@ index 5809eca..c5cc011 100644
 
 
 
-**TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
+**TODO: add json endpoints for registration, login, logout, news, private and user listing for admins.**
 
 * Show that public works and private doesnt
 * Add /login route

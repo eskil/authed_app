@@ -55,7 +55,7 @@ defmodule AuthedApp.Router do
     scope "/" do
       # Login required.
       pipe_through [:login_required]
-      get "/info", InfoController, :index
+      get "/private", PrivateController, :index
     end
 
     scope "/admin", Admin, as: :admin do
