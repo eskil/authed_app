@@ -2259,7 +2259,7 @@ index 5572f49..5809eca 100644
 -  # scope "/api", AuthedApp do
 -  #   pipe_through :api
 -  # end
-+  scope "/api", AuthedApp.API do
++  scope "/api", AuthedApp.API, as: :api do
 +    pipe_through [:api, :with_api_session]
 +    scope "/v1", V1, as: :v1 do
 +      post "/signup", SessionController, :signup
@@ -2283,22 +2283,22 @@ The routes now look like this.
 
 ```bash
 $ mix phoenix.routes
-         page_path  GET     /                    AuthedApp.PageController :index
-         user_path  GET     /users/new           AuthedApp.UserController :new
-         user_path  GET     /users/:id           AuthedApp.UserController :show
-         user_path  POST    /users               AuthedApp.UserController :create
-      session_path  GET     /sessions/new        AuthedApp.SessionController :new
-      session_path  POST    /sessions            AuthedApp.SessionController :create
-      session_path  DELETE  /sessions/:id        AuthedApp.SessionController :delete
-       public_path  GET     /public              AuthedApp.PublicController :index
-      private_path  GET     /private             AuthedApp.PrivateController :index
-   admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
-   v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
-   v1_session_path  POST    /api/v1/login        AuthedApp.API.V1.SessionController :login
-   v1_session_path  GET     /api/v1/logout       AuthedApp.API.V1.SessionController :logout
-    v1_public_path  GET     /api/v1/public       AuthedApp.API.V1.PublicController :index
-   v1_private_path  GET     /api/v1/private      AuthedApp.API.V1.PrivateController :index
-v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.UserController :index
+             page_path  GET     /                    AuthedApp.PageController :index
+             user_path  GET     /users/new           AuthedApp.UserController :new
+             user_path  GET     /users/:id           AuthedApp.UserController :show
+             user_path  POST    /users               AuthedApp.UserController :create
+          session_path  GET     /sessions/new        AuthedApp.SessionController :new
+          session_path  POST    /sessions            AuthedApp.SessionController :create
+          session_path  DELETE  /sessions/:id        AuthedApp.SessionController :delete
+           public_path  GET     /public              AuthedApp.PublicController :index
+          private_path  GET     /private             AuthedApp.PrivateController :index
+       admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
+   api_v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
+   api_v1_session_path  POST    /api/v1/login        AuthedApp.API.V1.SessionController :login
+   api_v1_session_path  GET     /api/v1/logout       AuthedApp.API.V1.SessionController :logout
+    api_v1_public_path  GET     /api/v1/public       AuthedApp.API.V1.PublicController :index
+   api_v1_private_path  GET     /api/v1/private      AuthedApp.API.V1.PrivateController :index
+api_v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.UserController :index
 ```
 
 ### Private and public controllers
@@ -2442,6 +2442,60 @@ index 5809eca..c5cc011 100644
      end
 ```
 
+Test it again.
+
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/private
+...
+< HTTP/1.1 401 Unauthorized
+...
+{"errors":["Unauthenticated"]}
+```
+
+But let's add unit-tests instead. Add `test/api/v1/controllers/public_controller_test.exs`
+
+```elixir
+defmodule AuthedApp.API.V1.PublicControllerTest do
+  use AuthedApp.ConnCase
+
+  test "GET /public", %{conn: conn} do
+    conn = get conn, api_v1_public_path(conn, :index)
+    assert json_response(conn, 200) == %{"public_news" => "none"}
+  end
+end
+```
+
+and `test/api/v1/controllers/private_controller_test.exs`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateControllerTest do
+  use AuthedApp.ConnCase
+  import AuthedApp.Test.Factory
+
+  setup do
+    user = insert(:user)
+    anon_conn = build_conn()
+    |> put_req_header("accept", "application/json")
+    user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
+    {:ok, %{
+        user: user,
+        anon_conn: anon_conn,
+        user_conn: user_conn
+        }
+    }
+  end
+
+  test "GET /public as anonymous", %{anon_conn: conn} do
+    conn = get conn, api_v1_private_path(conn, :index)
+    assert json_response(conn, 401) == %{"errors" => ["Unauthenticated"]}
+  end
+
+  test "GET /public as user", %{user_conn: conn} do
+    conn = get conn, api_v1_private_path(conn, :index)
+    assert json_response(conn, 200) == %{"private_news" => "none"}
+  end
+end
+```
 
 
 **TODO: add json endpoints for registration, login, logout, news, private and user listing for admins.**

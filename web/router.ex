@@ -65,7 +65,7 @@ defmodule AuthedApp.Router do
     end
   end
 
-  scope "/api", AuthedApp.API do
+  scope "/api", AuthedApp.API, as: :api do
     pipe_through [:api, :with_api_session]
     scope "/v1", V1, as: :v1 do
       post "/signup", SessionController, :signup
