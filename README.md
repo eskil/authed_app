@@ -2351,6 +2351,98 @@ defmodule AuthedApp.API.V1.PublicView do
 end
 ```
 
+### JSON API authentication
+
+If you now test `/public` and `/private`, we'll see that `/private`
+fails because of the auth error handler trying to put a flash
+noticication in the response.
+
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/public
+...
+< HTTP/1.1 200 OK
+...
+{"public_news":"none"}
+```
+
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/private
+...
+< HTTP/1.1 500 Internal Server Error
+...
+```
+
+And on the server side
+
+```
+[info] GET /api/v1/private
+[info] Sent 500 in 10ms
+[error] #PID<0.391.0> running AuthedApp.Endpoint terminated
+Server: localhost:4000 (http)
+Request: GET /api/v1/private
+** (exit) an exception was raised:
+    ** (ArgumentError) flash not fetched, call fetch_flash/2
+        (phoenix) lib/phoenix/controller.ex:1015: Phoenix.Controller.get_flash/1
+        (phoenix) lib/phoenix/controller.ex:1000: Phoenix.Controller.put_flash/3
+        (authed_app) web/auth/guardian_error_handler.ex:7: AuthedApp.GuardianErrorHandler.unauthenticated/2
+        (authed_app) web/router.ex:28: AuthedApp.Router.login_required/2
+        (authed_app) web/router.ex:1: AuthedApp.Router.match_route/4
+        (authed_app) web/router.ex:1: AuthedApp.Router.do_call/2
+        (authed_app) lib/authed_app/endpoint.ex:1: AuthedApp.Endpoint.phoenix_pipeline/1
+        (authed_app) lib/plug/debugger.ex:123: AuthedApp.Endpoint."call (overridable 3)"/2
+        (authed_app) lib/authed_app/endpoint.ex:1: AuthedApp.Endpoint.call/2
+        (plug) lib/plug/adapters/cowboy/handler.ex:15: Plug.Adapters.Cowboy.Handler.upgrade/4
+        (cowboy) /Users/eskil/src/github/eskil/authed_app.api/deps/cowboy/src/cowboy_protocol.erl:442: :cowboy_protocol.execute/4
+```
+
+We need to modify our `GuardianErrorHandler` to handle both html and
+json. However, turns out that of course guardian supplies a good
+default error handler that handlqes JSON and HTML well.
+
+We won't replace our existing `GuardianErrorHandler` since handling
+HTML will typically require some tweaking for a good user experience.
+
+But we'll modify the api routes to use `Guardian.Plug.ErrorHandler`
+for sessions that require login.
+
+```diff
+diff --git a/web/router.ex b/web/router.ex
+index 5809eca..c5cc011 100644
+--- a/web/router.ex
++++ b/web/router.ex
+@@ -34,6 +34,15 @@ defmodule AuthedApp.Router do
+     plug AuthedApp.CheckAdmin
+   end
+
++  pipeline :api_login_required do
++    plug Guardian.Plug.EnsureAuthenticated, handler: Guardian.Plug.ErrorHandler
++  end
++
++  pipeline :api_admin_required do
++    plug Guardian.Plug.EnsureAuthenticated, handler: Guardian.Plug.ErrorHandler
++    plug AuthedApp.CheckAdmin
++  end
++
+   scope "/", AuthedApp do
+     pipe_through [:browser, :with_session]
+
+@@ -64,11 +73,11 @@ defmodule AuthedApp.Router do
+       get "/logout", SessionController, :logout
+       get "/public", PublicController, :index
+       scope "/" do
+-        pipe_through [:login_required]
++        pipe_through [:api_login_required]
+         get "/private", PrivateController, :index
+       end
+       scope "/admin", Admin, as: :admin do
+-        pipe_through [:admin_required]
++        pipe_through [:api_admin_required]
+         resources "/users", UserController, only: [:index]
+       end
+     end
+```
+
+
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
 
 * First add /private /public routes

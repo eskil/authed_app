@@ -34,6 +34,15 @@ defmodule AuthedApp.Router do
     plug AuthedApp.CheckAdmin
   end
 
+  pipeline :api_login_required do
+    plug Guardian.Plug.EnsureAuthenticated, handler: Guardian.Plug.ErrorHandler
+  end
+
+  pipeline :api_admin_required do
+    plug Guardian.Plug.EnsureAuthenticated, handler: Guardian.Plug.ErrorHandler
+    plug AuthedApp.CheckAdmin
+  end
+
   scope "/", AuthedApp do
     pipe_through [:browser, :with_session]
 
@@ -64,11 +73,11 @@ defmodule AuthedApp.Router do
       get "/logout", SessionController, :logout
       get "/public", PublicController, :index
       scope "/" do
-        pipe_through [:login_required]
+        pipe_through [:api_login_required]
         get "/private", PrivateController, :index
       end
       scope "/admin", Admin, as: :admin do
-        pipe_through [:admin_required]
+        pipe_through [:api_admin_required]
         resources "/users", UserController, only: [:index]
       end
     end
