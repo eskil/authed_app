@@ -2138,7 +2138,7 @@ endpoints. It should basically look like
 Allow access to public API
 
 ```bash
-$ curl localhost:4000/api/v1/public
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/public
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2148,7 +2148,7 @@ $ curl localhost:4000/api/v1/public
 Disallow access to private API for unauthenticated users
 
 ```bash
-$ curl --verbose localhost:4000/api/v1/private
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/private
 ...
 < HTTP/1.1 403 Forbidden
 ...
@@ -2157,7 +2157,7 @@ $ curl --verbose localhost:4000/api/v1/private
 Allow signup with field validation.
 
 ```bash
-curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2167,7 +2167,7 @@ curl --verbose --header "Content-Type: application/json" --request POST --data '
 And of course handle signup with valid fields.
 
 ```bash
-curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"user@email.com", "password": "password"}' http://localhost:4000/api/v1/signup
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"user@email.com", "password": "password"}' http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 201 Created
 < authorization: <jwt token>
@@ -2178,7 +2178,7 @@ curl --verbose --header "Content-Type: application/json" --request POST --data '
 Logout user.
 
 ```bash
-curl --verbose --header "Content-Type: application/json" --header "authorization: <jwt token>" http://localhost:4000/api/v1/logout
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --header "authorization: <jwt token>" http://localhost:4000/api/v1/logout
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2187,7 +2187,7 @@ curl --verbose --header "Content-Type: application/json" --header "authorization
 Login should also validate fields.
 
 ```bash
-curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/login
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2197,7 +2197,7 @@ curl --verbose --header "Content-Type: application/json" --request POST --data '
 And successfully login when fields are ok.
 
 ```bash
-curl --verbose --header "Content-Type: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 200 OK
 < authorization: <jwt token>
@@ -2208,7 +2208,7 @@ curl --verbose --header "Content-Type: application/json" --request POST --data '
 Allow access to private pages for authenticated users.
 
 ```bash
-$ curl --verbose --header "Content-Type: application/json" --header "authorization: <jwt token>" localhost:4000/api/v1/private
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --header "authorization: <jwt token>" localhost:4000/api/v1/private
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2299,6 +2299,56 @@ $ mix phoenix.routes
     v1_public_path  GET     /api/v1/public       AuthedApp.API.V1.PublicController :index
    v1_private_path  GET     /api/v1/private      AuthedApp.API.V1.PrivateController :index
 v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.UserController :index
+```
+
+### Private and public controllers
+
+These are fairly trivial. First add `web/api/controllers/v1/private_controller.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.json", news: "none")
+  end
+end
+```
+
+and `web/api/controllers/v1/public_controller.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PublicController do
+  use AuthedApp.Web, :controller
+
+  def index(conn, _params) do
+    render(conn, "index.json", news: "none")
+  end
+end
+```
+
+they both need a view class, start with `web/api/views/v1/private_view.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateView do
+  use AuthedApp.Web, :view
+
+  def render("index.json", %{news: news}) do
+    %{private_news: news}
+  end
+end
+```
+
+and `web/api/views/v1/public_view.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.PublicView do
+  use AuthedApp.Web, :view
+
+  def render("index.json", %{news: news}) do
+    %{public_news: news}
+  end
+end
 ```
 
 **TODO: add json endpoints for registration, login, logout, news, info and user listing for admins.**
