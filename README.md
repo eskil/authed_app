@@ -2129,6 +2129,8 @@ situations. I won't got into editorial and begin to talk about fast
 unit-tests versus factory induced variety etc.. YMMV and you can
 always add separate factories for separate test cases.
 
+
+
 ## JSON API
 
 For the next step, we'll make JSON API endpoints for the the existing
@@ -2303,7 +2305,7 @@ api_v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.User
 
 ### Private and public controllers
 
-These are fairly trivial. First add `web/api/controllers/v1/private_controller.ex`
+These are fairly trivial. First add `web/api/v1/controllers/private_controller.ex`
 
 ```elixir
 defmodule AuthedApp.API.V1.PrivateController do
@@ -2315,7 +2317,7 @@ defmodule AuthedApp.API.V1.PrivateController do
 end
 ```
 
-and `web/api/controllers/v1/public_controller.ex`
+and `web/api/v1/controllers/public_controller.ex`
 
 ```elixir
 defmodule AuthedApp.API.V1.PublicController do
@@ -2327,7 +2329,7 @@ defmodule AuthedApp.API.V1.PublicController do
 end
 ```
 
-they both need a view class, start with `web/api/views/v1/private_view.ex`
+they both need a view class, start with `web/api/v1/views/private_view.ex`
 
 ```elixir
 defmodule AuthedApp.API.V1.PrivateView do
@@ -2339,7 +2341,7 @@ defmodule AuthedApp.API.V1.PrivateView do
 end
 ```
 
-and `web/api/views/v1/public_view.ex`
+and `web/api/v1/views/public_view.ex`
 
 ```elixir
 defmodule AuthedApp.API.V1.PublicView do
