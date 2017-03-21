@@ -2189,7 +2189,7 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 Login should also validate fields.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/login
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2505,9 +2505,18 @@ end
 Now that we can start adding a `AuthedApp.API.V1.SessionController` to
 allow registration, login and logout.
 
-The first aspect is that we'll need to validate email/password
-parameters. Make a schema in `web/api/v1/models/login_params.ex` that
-we'll use for the validation.
+We'll go straight to the controller and view, then add the two extra
+modules for argument validation and representing validation errors as
+json.
+
+In `web/api/v1/controllers/session_controller.ex`, put
+
+```elixir
+```
+
+Validation of email and password parameters are handled via a schema
+defintion, just like we use for our databasemodels. Make a schema in
+`web/api/v1/models/login_params.ex` that we'll use for the validation.
 
 ```elixir
 defmodule AuthedApp.API.V1.LoginParams do
@@ -2530,17 +2539,19 @@ defmodule AuthedApp.API.V1.LoginParams do
 end
 ```
 
-We will need to render the validation errors as dicts to return json. Errors look like
+We also need to render the validation errors as dicts to return
+json. Errors look like
 
 ```elixir
 [email: {"has invalid format", [validation: :format]},
  password: {"can't be blank", [validation: :required]}]
 ```
 
-Create `lib/changeset_errors.ex`
+Create `lib/changeset_errors.ex` which is used by
+`AuthedApp.API.V1.SessionController`
 
 ```elixir
-defmodule AuthedApp.ChangesetErrors do
+defmodule AuthedApp.Changesets do
   def errors_to_dict(changeset) do
     changeset.errors
     |> Enum.map(fn {k, v} -> %{k => reduce_message(v)} end)
@@ -2555,7 +2566,6 @@ defmodule AuthedApp.ChangesetErrors do
   end
 end
 ```
-
 
 
 

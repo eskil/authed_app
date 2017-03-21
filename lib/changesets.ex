@@ -1,4 +1,4 @@
-defmodule AuthedApp.ChangesetErrors do
+defmodule AuthedApp.Changesets do
   def errors_to_dict(changeset) do
     changeset.errors
     |> Enum.map(fn {k, v} -> %{k => reduce_message(v)} end)
