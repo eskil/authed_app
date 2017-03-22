@@ -3,7 +3,11 @@ defmodule AuthedApp.UserTest do
 
   alias AuthedApp.User
 
-  @valid_attrs %{email: "some content", is_admin: true, name: "some content", password_hash: "some content"}
+  @valid_attrs %{
+    email: "test@email.com",
+    is_admin: true,
+    name: "some content",
+    password_hash: "some content"}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

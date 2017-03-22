@@ -72,7 +72,7 @@ diff --git a/web/models/user.ex b/web/models/user.ex
 index 2c7f823..48fb451 100644
 --- a/web/models/user.ex
 +++ b/web/models/user.ex
-@@ -4,18 +4,21 @@ defmodule AuthedApp.User do
+@@ -4,12 +4,16 @@
    schema "users" do
      field :email, :string
      field :name, :string
@@ -85,23 +85,45 @@ index 2c7f823..48fb451 100644
 
 +  @required_fields [:email]
 +  @optional_fields [:name, :is_admin]
++
    @doc """
    Builds a changeset based on the `struct` and `params`.
    """
-   def changeset(struct, params \\ %{}) do
+@@ -17,5 +21,6 @@
      struct
--    |> cast(params, [:email, :name, :password_hash, :is_admin])
--    |> validate_required([:email, :name, :password_hash, :is_admin])
-+    |> cast(params, @required_fields ++ @optional_fields)
-+    |> validate_required(@required_fields)
+     |> cast(params, @required_fields ++ @optional_fields)
+     |> validate_required(@required_fields)
++    |> validate_format(:email, ~r/@/)
    end
- end
 ```
 
 Run migration to create the db and users table.
 
 ```bash
 mix ecto.migrate
+```
+
+Since we modified the schema to "validate" the email in some minimal
+fashion, the generated unit test needs a tweak too.
+
+```diff
+diff --git a/test/models/user_test.exs b/test/models/user_test.exs
+index 52c3140..4706dbb 100644
+--- a/test/models/user_test.exs
++++ b/test/models/user_test.exs
+@@ -3,7 +3,11 @@ defmodule AuthedApp.UserTest do
+
+   alias AuthedApp.User
+
+-  @valid_attrs %{email: "some content", is_admin: true, name: "some content", password_hash: "some c
++  @valid_attrs %{
++    email: "test@email.com",
++    is_admin: true,
++    name: "some content",
++    password_hash: "some content"}
+   @invalid_attrs %{}
+
+   test "changeset with valid attributes" do
 ```
 
 ### User controller
@@ -254,9 +276,9 @@ diff --git a/web/models/user.ex b/web/models/user.ex
 index 48fb451..741a73f 100644
 --- a/web/models/user.ex
 +++ b/web/models/user.ex
-@@ -21,4 +21,30 @@ defmodule AuthedApp.User do
-     |> cast(params, @required_fields ++ @optional_fields)
+@@ -23,4 +23,31 @@
      |> validate_required(@required_fields)
+     |> validate_format(:email, ~r/@/)
    end
 +
 +  @doc """
@@ -267,6 +289,7 @@ index 48fb451..741a73f 100644
 +    struct
 +    |> changeset(params)
 +    |> cast(params, [:password])
++    |> validate_required([:password])
 +    |> validate_length(:password, min: 6, max: 100)
 +    |> hash_password
 +  end
@@ -2399,7 +2422,7 @@ Request: GET /api/v1/private
 
 We need to modify our `GuardianErrorHandler` to handle both html and
 json. However, turns out that of course guardian supplies a good
-default error handler that handlqes JSON and HTML well.
+[default error handler](https://github.com/ueberauth/guardian/blob/master/lib/guardian/plug/error_handler.ex) that handles JSON and HTML well.
 
 We won't replace our existing `GuardianErrorHandler` since handling
 HTML will typically require some tweaking for a good user experience.
@@ -2539,8 +2562,8 @@ defmodule AuthedApp.API.V1.LoginParams do
 end
 ```
 
-We also need to render the validation errors as dicts to return
-json. Errors look like
+We need to render the validation errors as dicts to return
+json. Changeset validation errors look like
 
 ```elixir
 [email: {"has invalid format", [validation: :format]},
@@ -2567,7 +2590,24 @@ defmodule AuthedApp.Changesets do
 end
 ```
 
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
+...
+< HTTP/1.1 400 Bad Request
+...
+{"errors":[{"email":"has invalid format"},{"password":"can't be blank"}]}
 
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+...
+< HTTP/1.1 200 OK
+...
+< authorization: <long jwt token>
+< x-expires: <timestamp>
+...
+{}
+```
+
+Let's add a unit-test for the endpoints. In `test/
 
 **TODO: add json endpoints for registration, login, logout, news, private and user listing for admins.**
 

@@ -22,7 +22,7 @@ defmodule AuthedApp.UserController do
     case Repo.insert(changeset) do
       {:ok, user} ->
         conn
-        |> AuthedApp.Auth.login(user)
+        |> AuthedApp.Auth.login(user, :html)
         |> put_flash(:info, "#{user.name} created!")
         |> redirect(to: user_path(conn, :show, user))
       {:error, changeset} ->

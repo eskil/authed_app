@@ -1,14 +1,17 @@
 defmodule AuthedApp.Changesets do
   def errors_to_dict(changeset) do
     changeset.errors
-    |> Enum.map(fn {k, v} -> %{k => reduce_message(v)} end)
+    |> Enum.map(fn {k, v} -> %{k => render_message(v)} end)
   end
 
-  defp reduce_message({message, _values}) do
-    message
+  defp render_message({message, values}) do
+    values
+    |> Enum.reduce(message, fn {k, v}, acc ->
+      String.replace(acc, "%{#{k}}", to_string(v))
+    end)
   end
 
-  defp reduce_message(message) do
+  defp render_message(message) do
     message
   end
 end
