@@ -2167,7 +2167,7 @@ Allow access to public API
 
 ```bash
 $ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
-  localhost:4000/api/v1/public
+  http://localhost:4000/api/v1/public
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2177,8 +2177,8 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 Disallow access to private API for unauthenticated users
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" localhost:4000/api/v1/private
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  http://localhost:4000/api/v1/private
 ...
 < HTTP/1.1 403 Forbidden
 ...
@@ -2187,9 +2187,8 @@ $ curl --verbose  --header "Content-Type: application/json" \
 Allow signup with field validation.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --request POST \
-  --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 400 Bad Request
 ...
