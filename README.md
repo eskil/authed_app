@@ -2166,8 +2166,8 @@ endpoints. It should basically look like
 Allow access to public API
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" localhost:4000/api/v1/public
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  localhost:4000/api/v1/public
 ...
 < HTTP/1.1 200 OK
 ...
