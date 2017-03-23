@@ -2485,7 +2485,9 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 {"errors":["Unauthenticated"]}
 ```
 
-But let's add unit-tests instead. Add `test/api/v1/controllers/public_controller_test.exs`
+But let's add unit-tests instead. Add
+`test/api/v1/controllers/public_controller_test.exs`, which is fairly
+trivial.
 
 ```elixir
 defmodule AuthedApp.API.V1.PublicControllerTest do
@@ -2498,7 +2500,10 @@ defmodule AuthedApp.API.V1.PublicControllerTest do
 end
 ```
 
-and `test/api/v1/controllers/private_controller_test.exs`
+`API.V1.PrivateControllerTest` reuses some of the prior tests' factory
+usage and setup. Note that we set the accept header during setup. In
+`test/api/v1/controllers/private_controller_test.exs`
+
 
 ```elixir
 defmodule AuthedApp.API.V1.PrivateControllerTest do
@@ -2662,66 +2667,18 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 {}
 ```
 
-For unit-tests for the endpoints, we'll start with `PublicController`,
-it's pretty trivial. In
-`test/api/v1/controllers/public_controller_test.exs`
-
-```elixir
-defmodule AuthedApp.API.V1.PublicControllerTest do
-  use AuthedApp.ConnCase
-
-  test "GET /public", %{conn: conn} do
-    conn = get conn, api_v1_public_path(conn, :index)
-    assert json_response(conn, 200) == %{"public_news" => "none"}
-  end
-end
-```
-
-`PrivateController` reuses some of the prior tests' factory usage and
-setup. Note that we set the accept header during setup. In
-`test/api/v1/controllers/private_controller_test.exs`
-
-```elixir
-defmodule AuthedApp.API.V1.PrivateControllerTest do
-  use AuthedApp.ConnCase
-  import AuthedApp.Test.Factory
-
-  setup do
-    user = insert(:user)
-    anon_conn = build_conn()
-    |> put_req_header("accept", "application/json")
-    user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
-    {:ok, %{
-        user: user,
-        anon_conn: anon_conn,
-        user_conn: user_conn
-        }
-    }
-  end
-
-  test "GET /public as anonymous", %{anon_conn: conn} do
-    conn = get conn, api_v1_private_path(conn, :index)
-    assert json_response(conn, 401) == %{"errors" => ["Unauthenticated"]}
-  end
-
-  test "GET /public as user", %{user_conn: conn} do
-    conn = get conn, api_v1_private_path(conn, :index)
-    assert json_response(conn, 200) == %{"private_news" => "none"}
-  end
-end
-```
 
 
 **TODO: add json endpoints for registration, login, news, private and user listing for admins.**
 
-* Add /login route
+* done Add /login route
 * Add sesion controller plus changes to auth.ex and user_controller
-* Add login params that session controller needs
-* Add changeset_errors
-* Finally session_view
-* curl login and show private works
+* done Add login params that session controller needs
+* done Add changeset_errors
+* done Finally session_view
+* done curl login and show private works
 * unit-tests
-* Add /users to routes
+* Add /admin/users to routes
   * Add users controller
 
 
