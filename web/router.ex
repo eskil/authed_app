@@ -69,7 +69,7 @@ defmodule AuthedApp.Router do
     pipe_through [:api, :with_api_session]
     scope "/v1", V1, as: :v1 do
       post "/signup", SessionController, :signup
-      post "/login", SessionController, :login
+      put "/login", SessionController, :login
       get "/logout", SessionController, :logout
       get "/public", PublicController, :index
       scope "/" do

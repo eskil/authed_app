@@ -312,7 +312,7 @@ index 48fb451..741a73f 100644
 
 Change user controller in `web/controllers/user_controller.ex` to
 check for (and scrub) a `user` parameter on create, and then make the
-`create` method use the `registration_changeset`
+`create/2` method use the `registration_changeset/2`
 
 ```diff
 diff --git a/web/controllers/user_controller.ex b/web/controllers/user_controller.ex
@@ -362,8 +362,8 @@ and can register users with hashed passwords.
 
 ## Session controller
 
-Sessions are managed by `new` which is the login form, `create` which
-is a login form submit and `delete` which is the logout.
+Sessions are managed by `new/2` which is the login form, `create/2` which
+is a login form submit and `delete/2` which is the logout.
 
 Add the SessionController in `web/controllers/session_controller.ex`.
 
@@ -461,7 +461,7 @@ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 curl -H "X-HTTP-Method-Override: POST" -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD'  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
 ```
 
-This will end with a crash since SessionController's `create` isn't implemented yet:
+This will end with a crash since SessionController's `create/2` isn't implemented yet:
 ```
 [error] #PID<0.463.0> running AuthedApp.Endpoint terminated
 Server: localhost:4000 (http)
@@ -572,7 +572,7 @@ defmodule AuthedApp.GuardianSerializer do
 end
 ```
 
-Hook up SessionController's `create` in
+Hook up SessionController's `create/2` in
 `web/controllers/session_controller.ex` to let users log in if their
 password is verified.
 
@@ -727,9 +727,9 @@ index 1837e66..6e61e12 100644
 We're now
 [here in the blog](https://medium.com/@andreichernykh/phoenix-simple-authentication-authorization-in-step-by-step-tutorial-form-dc93ea350153#6687).
 
-We'll refactor SessionController's `login` and `logout` to enable
-logging in when registering. Move `login` and `logout` to
-`web/auth/auth.ex` and add `login_by_email_and_password`.
+We'll refactor SessionController's `login/2` and `logout/1` to enable
+logging in when registering. Move `login/2` and `logout/1` to
+`web/auth/auth.ex` and add `login_by_email_and_password/3`.
 
 ```elixir
 defmodule AuthedApp.Auth do
@@ -886,6 +886,7 @@ end
 ```
 
 it's corresponding view module in `/web/views/public_view.ex`
+
 ```elixir
 defmodule AuthedApp.PublicView do
   use AuthedApp.Web, :view
@@ -1125,7 +1126,7 @@ Or in a diff
 +admin_user_path  GET     /admin/users   AuthedApp.Admin.UserController :index
 ```
 
-Remove the `index` handler from `UserController` and move it into a
+Remove the `index/2` handler from `UserController` and move it into a
 new `Admin.UserController` in `web/admin/user_controller.ex`
 
 ```elixir
@@ -1309,7 +1310,7 @@ We'll move the navigation links and "marketing" links into two new
 html templates.
 
 In `web/templates/layout/app.html.eex`, replace the sign in/register links with calls
-to a new function `navigation_header` and a `footer` function that we'll define afterwards.
+to a new function `navigation_header/1` and a `footer/1` function that we'll define afterwards.
 
 ```diff
 diff --git a/web/templates/layout/app.html.eex b/web/templates/layout/app.html.eex
@@ -1940,7 +1941,7 @@ defmodule AuthedApp.PublicControllerTest do
 end
 ```
 
-The other missing test is the path in `SessionControllerTest` `create`
+The other missing test is the path in `SessionControllerTest` `create/2`
 that actually logs in a user given email and password. So let's extend
 `test/controllers/session_controller_test.exs` to test the login path,
 using both correct and wrong credentials.
@@ -2212,7 +2213,7 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 Login should also validate fields.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2222,7 +2223,7 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 And successfully login when fields are ok.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 200 OK
 < authorization: <jwt token>
@@ -2273,10 +2274,10 @@ Add the routes for the endpoints
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
-index 5572f49..5809eca 100644
+index 5572f49..fadc35f 100644
 --- a/web/router.ex
 +++ b/web/router.ex
-@@ -56,8 +56,21 @@ defmodule AuthedApp.Router do
+@@ -56,8 +56,20 @@ defmodule AuthedApp.Router do
      end
    end
 
@@ -2288,8 +2289,7 @@ index 5572f49..5809eca 100644
 +    pipe_through [:api, :with_api_session]
 +    scope "/v1", V1, as: :v1 do
 +      post "/signup", SessionController, :signup
-+      post "/login", SessionController, :login
-+      get "/logout", SessionController, :logout
++      put "/login", SessionController, :login
 +      get "/public", PublicController, :index
 +      scope "/" do
 +        pipe_through [:login_required]
@@ -2304,7 +2304,8 @@ index 5572f49..5809eca 100644
  end
 ```
 
-The routes now look like this.
+There's no `/logout`, since [JWT tokens don't work like that](http://stackoverflow.com/questions/21978658/invalidating-json-web-tokens). The
+routes now look like this.
 
 ```bash
 $ mix phoenix.routes
@@ -2319,8 +2320,7 @@ $ mix phoenix.routes
           private_path  GET     /private             AuthedApp.PrivateController :index
        admin_user_path  GET     /admin/users         AuthedApp.Admin.UserController :index
    api_v1_session_path  POST    /api/v1/signup       AuthedApp.API.V1.SessionController :signup
-   api_v1_session_path  POST    /api/v1/login        AuthedApp.API.V1.SessionController :login
-   api_v1_session_path  GET     /api/v1/logout       AuthedApp.API.V1.SessionController :logout
+   api_v1_session_path  PUT     /api/v1/login        AuthedApp.API.V1.SessionController :login
     api_v1_public_path  GET     /api/v1/public       AuthedApp.API.V1.PublicController :index
    api_v1_private_path  GET     /api/v1/private      AuthedApp.API.V1.PrivateController :index
 api_v1_admin_user_path  GET     /api/v1/admin/users  AuthedApp.API.V1.Admin.UserController :index
@@ -2451,8 +2451,8 @@ index 5809eca..c5cc011 100644
    scope "/", AuthedApp do
      pipe_through [:browser, :with_session]
 
-@@ -64,11 +73,11 @@ defmodule AuthedApp.Router do
-       get "/logout", SessionController, :logout
+@@ -63,11 +72,11 @@ defmodule AuthedApp.Router do
+       put "/login", SessionController, :login
        get "/public", PublicController, :index
        scope "/" do
 -        pipe_through [:login_required]
@@ -2526,7 +2526,7 @@ end
 ### JSON API account creation and login
 
 Now that we can start adding a `AuthedApp.API.V1.SessionController` to
-allow registration, login and logout.
+allow registration and login.
 
 We'll go straight to the controller and view, then add the two extra
 modules for argument validation and representing validation errors as
@@ -2535,10 +2535,54 @@ json.
 In `web/api/v1/controllers/session_controller.ex`, put
 
 ```elixir
+defmodule AuthedApp.API.V1.SessionController do
+  use AuthedApp.Web, :controller
+
+  import AuthedApp.Changesets
+  alias AuthedApp.User
+  alias AuthedApp.API.V1.LoginParams
+
+  def signup(conn, params) do
+    changeset = User.registration_changeset(%User{}, params)
+    case Repo.insert(changeset) do
+      {:ok, user} ->
+        conn
+        |> AuthedApp.Auth.login(user, :json)
+        |> put_status(201)
+        |> render("login.json")
+      _ ->
+        conn
+        |> put_status(400)
+        |> render("error.json", errors: errors_to_dict(changeset))
+    end
+  end
+
+  def login(conn, params) do
+    changeset = LoginParams.changeset(%LoginParams{}, params)
+    case changeset do
+      %{:params => p, :valid? => true} ->
+        case AuthedApp.Auth.login_by_email_and_password(conn, p["email"], p["password"]) do
+          {:ok, conn} ->
+            conn
+            |> render("login.json")
+          {:error, _reason, conn} ->
+            conn
+            |> put_status(:forbidden)
+            |> render("login.json")
+        end
+      _ ->
+        conn
+        |> put_status(400)
+        |> render("error.json", errors: errors_to_dict(changeset))
+    end
+  end
+end
 ```
 
 Validation of email and password parameters are handled via a schema
-defintion, just like we use for our databasemodels. Make a schema in
+defintion, just like we use for our databasemodels. `signup/2` uses
+`User.registration_changeset`, but for `login/2`, we want a separate
+that purely checks the JSON paramters. Make a schema in
 `web/api/v1/models/login_params.ex` that we'll use for the validation.
 
 ```elixir
@@ -2577,27 +2621,30 @@ Create `lib/changeset_errors.ex` which is used by
 defmodule AuthedApp.Changesets do
   def errors_to_dict(changeset) do
     changeset.errors
-    |> Enum.map(fn {k, v} -> %{k => reduce_message(v)} end)
+    |> Enum.map(fn {k, v} -> %{k => render_message(v)} end)
   end
 
-  defp reduce_message({message, _values}) do
-    message
+  defp render_message({message, values}) do
+    values
+    |> Enum.reduce(message, fn {k, v}, acc ->
+      String.replace(acc, "%{#{k}}", to_string(v))
+    end)
   end
 
-  defp reduce_message(message) do
+  defp render_message(message) do
     message
   end
 end
 ```
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
 ...
 {"errors":[{"email":"has invalid format"},{"password":"can't be blank"}]}
 
-$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2607,9 +2654,57 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 {}
 ```
 
-Let's add a unit-test for the endpoints. In `test/
+For unit-tests for the endpoints, we'll start with `PublicController`,
+it's pretty trivial. In
+`test/api/v1/controllers/public_controller_test.exs`
 
-**TODO: add json endpoints for registration, login, logout, news, private and user listing for admins.**
+```elixir
+defmodule AuthedApp.API.V1.PublicControllerTest do
+  use AuthedApp.ConnCase
+
+  test "GET /public", %{conn: conn} do
+    conn = get conn, api_v1_public_path(conn, :index)
+    assert json_response(conn, 200) == %{"public_news" => "none"}
+  end
+end
+```
+
+`PrivateController` reuses some of the prior tests' factory usage and
+setup. Note that we set the accept header during setup. In
+`test/api/v1/controllers/private_controller_test.exs`
+
+```elixir
+defmodule AuthedApp.API.V1.PrivateControllerTest do
+  use AuthedApp.ConnCase
+  import AuthedApp.Test.Factory
+
+  setup do
+    user = insert(:user)
+    anon_conn = build_conn()
+    |> put_req_header("accept", "application/json")
+    user_conn = Guardian.Plug.api_sign_in(anon_conn, user, :token)
+    {:ok, %{
+        user: user,
+        anon_conn: anon_conn,
+        user_conn: user_conn
+        }
+    }
+  end
+
+  test "GET /public as anonymous", %{anon_conn: conn} do
+    conn = get conn, api_v1_private_path(conn, :index)
+    assert json_response(conn, 401) == %{"errors" => ["Unauthenticated"]}
+  end
+
+  test "GET /public as user", %{user_conn: conn} do
+    conn = get conn, api_v1_private_path(conn, :index)
+    assert json_response(conn, 200) == %{"private_news" => "none"}
+  end
+end
+```
+
+
+**TODO: add json endpoints for registration, login, news, private and user listing for admins.**
 
 * Add /login route
 * Add sesion controller plus changes to auth.ex and user_controller

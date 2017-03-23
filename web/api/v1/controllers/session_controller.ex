@@ -39,10 +39,4 @@ defmodule AuthedApp.API.V1.SessionController do
         |> render("error.json", errors: errors_to_dict(changeset))
     end
   end
-
-  def logout(conn, params) do
-    IO.inspect params, pretty: true
-    conn
-    |> json(%{})
-  end
 end

@@ -22,6 +22,10 @@ defmodule AuthedApp.Auth do
     end
   end
 
+  def login(conn, user) do
+    login(conn, user, response_type(conn))
+  end
+
   def logout(conn) do
     Guardian.Plug.sign_out(conn)
   end
@@ -33,7 +37,7 @@ defmodule AuthedApp.Auth do
     cond do
       # We have a user and the hashed password matches the db one.
       user && checkpw(password, user.password_hash) ->
-        {:ok, login(conn, user, response_type(conn))}
+        {:ok, login(conn, user)}
       # We have a user but the password check failed.
       user ->
         {:error, :unauthorized, conn}
