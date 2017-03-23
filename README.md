@@ -441,7 +441,7 @@ mix phoenix.server
 Get the login page plus cookie and csrf token
 
 ```bash
-$ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
+$ curl --request GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ...
 <form accept-charset="UTF-8" action="/sessions" method="post">
   <input name="_csrf_token" type="hidden"
@@ -458,8 +458,8 @@ $ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ```
 
 ```bash
-$ curl -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" \
-  -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD' \
+$ curl --header "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" \
+  --request POST --form 'session[email]=test1@example.com' --form 'session[password]=PASSWORD' \
   --cookie ~/.cookiejar --verbose  localhost:4000/sessions
 ```
 
