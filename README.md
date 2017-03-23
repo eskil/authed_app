@@ -2188,7 +2188,8 @@ Allow signup with field validation.
 
 ```bash
 $ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
-  --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
+  --request POST --data '{"email":"", "password": ""}' \
+  http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2198,9 +2199,8 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 And of course handle signup with valid fields.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --request POST \
-  --data '{"email":"user@email.com", "password": "password"}' \
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --request POST --data '{"email":"user@email.com", "password": "password"}' \
   http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 201 Created
@@ -2209,23 +2209,11 @@ $ curl --verbose  --header "Content-Type: application/json" \
 ...
 ```
 
-Logout user.
+A subsequent login should also validate fields.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --header "authorization: <jwt token>" \
-  http://localhost:4000/api/v1/logout
-...
-< HTTP/1.1 200 OK
-...
-```
-
-Login should also validate fields.
-
-```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --request PUT \
-  --data '{"email":"bad email", "password": ""}' \
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --request PUT --data '{"email":"bad email", "password": ""}' \
   http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
@@ -2236,9 +2224,8 @@ $ curl --verbose  --header "Content-Type: application/json" \
 And successfully login when fields are ok.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --request PUT \
-  --data '{"email":"test1@example.com", "password": "password"}' \
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --request PUT --data '{"email":"test1@example.com", "password": "password"}' \
   http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 200 OK
@@ -2250,8 +2237,8 @@ $ curl --verbose  --header "Content-Type: application/json" \
 Allow access to private pages for authenticated users.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" \
-  --header "Accept: application/json" --header "authorization: <jwt token>" \
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --header "authorization: <jwt token>" \
   localhost:4000/api/v1/private
 ...
 < HTTP/1.1 200 OK
@@ -2259,6 +2246,7 @@ $ curl --verbose  --header "Content-Type: application/json" \
 {"private_news":"none"}
 ```
 
+And `/admin/users` should list all users, but only for admin users, non-admin get 401.
 
 ### Update routes
 
