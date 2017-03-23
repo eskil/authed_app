@@ -441,7 +441,7 @@ mix phoenix.server
 Get the login page plus cookie and csrf token
 
 ```bash
-curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
+$ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ...
 <form accept-charset="UTF-8" action="/sessions" method="post">
   <input name="_csrf_token" type="hidden"
@@ -458,7 +458,9 @@ curl -X GET --cookie-jar ~/.cookiejar --verbose  localhost:4000/sessions/new
 ```
 
 ```bash
-curl -H "X-HTTP-Method-Override: POST" -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD'  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
+$ curl -H "x-csrf-token: eVJ4HyFrRScdUA01SHVuaAEXbDI0JgAALgOHsS1qs14Vp8+P2d9CYw==" \
+  -X POST -F 'session[email]=test1@example.com' -F 'session[password]=PASSWORD' \
+  --cookie ~/.cookiejar --verbose  localhost:4000/sessions
 ```
 
 This will end with a crash since SessionController's `create/2` isn't implemented yet:
@@ -2164,7 +2166,8 @@ endpoints. It should basically look like
 Allow access to public API
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/public
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" localhost:4000/api/v1/public
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2174,7 +2177,8 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 Disallow access to private API for unauthenticated users
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" localhost:4000/api/v1/private
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" localhost:4000/api/v1/private
 ...
 < HTTP/1.1 403 Forbidden
 ...
@@ -2183,7 +2187,9 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 Allow signup with field validation.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --request POST \
+  --data '{"email":"", "password": ""}' http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2193,7 +2199,10 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 And of course handle signup with valid fields.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request POST --data '{"email":"user@email.com", "password": "password"}' http://localhost:4000/api/v1/signup
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --request POST \
+  --data '{"email":"user@email.com", "password": "password"}' \
+  http://localhost:4000/api/v1/signup
 ...
 < HTTP/1.1 201 Created
 < authorization: <jwt token>
@@ -2204,7 +2213,9 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 Logout user.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --header "authorization: <jwt token>" http://localhost:4000/api/v1/logout
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --header "authorization: <jwt token>" \
+  http://localhost:4000/api/v1/logout
 ...
 < HTTP/1.1 200 OK
 ...
@@ -2213,7 +2224,10 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 Login should also validate fields.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"bad email", "password": ""}' http://localhost:4000/api/v1/login
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --request PUT \
+  --data '{"email":"bad email", "password": ""}' \
+  http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 400 Bad Request
 ...
@@ -2223,7 +2237,10 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 And successfully login when fields are ok.
 
 ```bash
-curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --request PUT \
+  --data '{"email":"test1@example.com", "password": "password"}' \
+  http://localhost:4000/api/v1/login
 ...
 < HTTP/1.1 200 OK
 < authorization: <jwt token>
@@ -2234,7 +2251,9 @@ curl --verbose  --header "Content-Type: application/json" --header "Accept: appl
 Allow access to private pages for authenticated users.
 
 ```bash
-$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" --header "authorization: <jwt token>" localhost:4000/api/v1/private
+$ curl --verbose  --header "Content-Type: application/json" \
+  --header "Accept: application/json" --header "authorization: <jwt token>" \
+  localhost:4000/api/v1/private
 ...
 < HTTP/1.1 200 OK
 ...
