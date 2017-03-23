@@ -2250,10 +2250,10 @@ And `/admin/users` should list all users, but only for admin users, non-admin ge
 
 ### Update routes
 
-We need to add a session for api. It's slightly different from
-`:with_session` in that we'll be using the [header
+We need to add a router session for the JSON api. It's slightly different from the HTML
+`:with_session` in that we'll be using the [guardian header
 check](https://hexdocs.pm/guardian/Guardian.Plug.VerifyHeader.html)
-instead of [session
+instead of [the session
 check](https://hexdocs.pm/guardian/Guardian.Plug.VerifySession.html)
 
 ```diff
@@ -2276,7 +2276,9 @@ index 20bbff7..5572f49 100644
    end
 ```
 
-Add the routes for the endpoints
+Add the routes for the endpoints we want to define. We scope them so
+the urls are `/api/v1/...` and the route path helpers all look like
+`api_v1_..._path/2`. This is one way to version APIs. In `web/router.ex`:
 
 ```diff
 diff --git a/web/router.ex b/web/router.ex
