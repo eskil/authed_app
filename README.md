@@ -2777,29 +2777,7 @@ $ curl localhost:4000/api/v1/private
 ```
 
 
-* First add /private /public routes
-* Add /private/public controllers
-* Make guardian error handler handle html/json
-* Show that public works and private doesnt
-* Add /login route
-* Add sesion controller plus changes to auth.ex and user_controller
-* Add login params that session controller needs
-* Add changeset_errors
-* Finally session_view
-* curl login and show private works
-* unit-tests
+**TODO:**
+
 * Add /users to routes
   * Add users controller
-
-
-```bash
-$ curl --verbose --header "Content-Type: applicatiest POST --data '{"email":"test1@example.com", "password": "password"}' http://localhost:4000/api/v1/login
-```
-
-```bash
-$ curl --verbose  http://localhost:4000/api/v1/private
-```
-
-## Add user id encryption
-
-**TODO: ensure primary int keys don't leak**
