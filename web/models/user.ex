@@ -20,6 +20,7 @@ defmodule AuthedApp.User do
     struct
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
+    |> validate_format(:email, ~r/@/)
   end
 
   @doc """
@@ -30,6 +31,7 @@ defmodule AuthedApp.User do
     struct
     |> changeset(params)
     |> cast(params, [:password])
+    |> validate_required([:password])
     |> validate_length(:password, min: 6, max: 100)
     |> hash_password
   end

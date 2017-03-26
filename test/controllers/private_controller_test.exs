@@ -28,6 +28,6 @@ defmodule AuthedApp.PrivateControllerTest do
   # Note this test uses user_conn to test registered and signed in users.
   test "GET /private as user ", %{user_conn: conn} do
     conn = get conn, private_path(conn, :index)
-    assert html_response(conn, 200) =~ "info today"
+    assert html_response(conn, 200) =~ "Private"
   end
 end
