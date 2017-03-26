@@ -45,7 +45,7 @@ defmodule AuthedApp.Router do
   end
 
   pipeline :api_admin_required do
-    plug Guardian.Plug.EnsureAuthenticated, handler: Guardian.Plug.ErrorHandler
+    plug Guardian.Plug.EnsureAuthenticated, handler: AuthedApp.API.Admin.GuardianErrorHandler
     plug AuthedApp.CheckAdmin
   end
 
