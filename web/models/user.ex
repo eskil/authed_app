@@ -10,6 +10,7 @@ defmodule AuthedApp.User do
 
     timestamps()
   end
+  use AuthedApp.SchemaToJson, json_fields: [:id, :email, :name, :is_admin]
 
   @required_fields [:email]
   @optional_fields [:name, :is_admin]

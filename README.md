@@ -2668,116 +2668,101 @@ $ curl --verbose  --header "Content-Type: application/json" --header "Accept: ap
 ```
 
 
+### Admin user list access
 
-**TODO: add json endpoints for registration, login, news, private and user listing for admins.**
+The last bit we need is the `/api/v1/admin/users` endpoint. It'll work roughly like this
 
-* done Add /login route
-* Add sesion controller plus changes to auth.ex and user_controller
-* done Add login params that session controller needs
-* done Add changeset_errors
-* done Finally session_view
-* done curl login and show private works
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --request PUT --data '{"email":"admin@example.com", "password": "default password"}' \
+  http://localhost:4000/api/v1/login
+...
+< HTTP/1.1 200 OK
+< authorization: <jwt token>
+< x-expires: <ts>
+...
+```
+
+```bash
+$ curl --verbose  --header "Content-Type: application/json" --header "Accept: application/json" \
+  --header "authorization: <jwt token>" \
+  localhost:4000/api/v1/admin/users
+...
+< HTTP/1.1 200 OK
+...
+{"users":[{"name":"...","is_admin":false,"id":1,"email":"..."},...]}
+```
+
+Create the `API.V1.Admin.UserController` in `web/api/v1/controllers/admin/user_controller.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.Admin.UserController do
+  use AuthedApp.Web, :controller
+
+  alias AuthedApp.User
+
+  def index(conn, params) do
+    conn
+    |> render("index.json", users: Repo.all(User))
+  end
+end
+```
+
+It's view will call a `AuthedApp.user.to_json/1` function to render each user into json, we'll look define that after the view in `web/api/v1/views/admin/user_view.ex`
+
+```elixir
+defmodule AuthedApp.API.V1.Admin.UserView do
+  use AuthedApp.Web, :view
+
+  alias AuthedApp.User
+
+  def render("index.json", %{users: users}) do
+    %{users: Enum.map(users, &User.to_json/1)}
+  end
+end
+```
+
+To define `AuthedApp.User.to_json/1`, we create a module that
+`AuthedApp.User` can `use` to get it's `to_json/1` method and define
+which fields will be shown in json for our case. This makes for a
+simple system to define which fields go into json for different use
+cases.
+
+```diff
+diff --git a/web/models/user.ex b/web/models/user.ex
+index e5546bd..b30888b 100644
+--- a/web/models/user.ex
++++ b/web/models/user.ex
+@@ -10,6 +10,7 @@ defmodule AuthedApp.User do
+
+     timestamps()
+   end
++  use AuthedApp.SchemaToJson, json_fields: [:id, :email, :name, :is_admin]
+
+   @required_fields [:email]
+   @optional_fields [:name, :is_admin]
+```
+
+The module `AuthedApp.SchemaToJson` is defined in `lib/schema_to_json.ex` as
+
+```elixir
+defmodule AuthedApp.SchemaToJson do
+  defmacro __using__(opts) do
+    quote do
+      def to_json(obj) do
+        for key <- unquote(opts[:json_fields]), into: %{}, do: {key, Map.fetch!(obj, key)}
+      end
+    end
+  end
+end
+```
+
 * unit-tests
 * Add /admin/users to routes
   * Add users controller
 
 
 
-Add routes for our JSON API in `web/router.ex`
+## Add user id encryption
 
-```diff
-diff --git a/web/router.ex b/web/router.ex
-index 20bbff7..6d2d6ff 100644
---- a/web/router.ex
-+++ b/web/router.ex
-@@ -50,8 +50,20 @@ defmodule AuthedApp.Router do
-     end
-   end
-
--  # Other scopes may use custom stacks.
--  # scope "/api", AuthedApp do
--  #   pipe_through :api
--  # end
-+  scope "/api", AuthedApp.API do
-+    pipe_through [:api]
-+    scope "/v1", V1, as: :v1 do
-+      post "/login", SessionController, :login
-+      get "/logout", SessionController, :logout
-+      get "/public", PublicController, :index
-+      scope "/" do
-+        pipe_through [:login_required]
-+        get "/private", PrivateController, :index
-+      end
-+      scope "/admin", Admin, as: :admin do
-+        pipe_through [:admin_required, :login_required]
-+        get "/users", UserController, :index
-+      end
-+    end
-+  end
- end
-```
-
-
-Add public controller to `web/api/controllers/v1/public_controller.ex`
-
-```elixir
-defmodule AuthedApp.API.V1.PublicController do
-  use AuthedApp.Web, :controller
-
-  def index(conn, _params) do
-    render(conn, "index.json", news: "none")
-  end
-end
-```
-
-and it's view module to `web/api/views/v1/public_view.ex`
-
-```elixir
-defmodule AuthedApp.API.V1.PublicView do
-  use AuthedApp.Web, :view
-
-  def render("index.json", %{news: news}) do
-    %{public_news: news}
-  end
-end
-```
-
-```bash
-$ curl localhost:4000/api/v1/public
-{"public_news":"none"}
-```
-
-And ditto for the private controller to `web/api/controllers/v1/private_controller.ex`
-
-```elixir
-defmodule AuthedApp.API.V1.PrivateController do
-  use AuthedApp.Web, :controller
-
-  def index(conn, _params) do
-    render(conn, "index.json", news: "none")
-  end
-end
-```
-
-and it's view module to `web/api/views/v1/private_view.ex`
-
-```elixir
-defmodule AuthedApp.API.V1.PrivateView do
-  use AuthedApp.Web, :view
-
-  def render("index.json", %{news: news}) do
-    %{private_news: news}
-  end
-end
-```
-
-```bash
-$ curl localhost:4000/api/v1/private
-{"private_news":"none"}
-```
-
-
-**TODO:**
-
-* Add /users to routes
-  * Add users controller
+**TODO: ensure primary int keys don't leak**
