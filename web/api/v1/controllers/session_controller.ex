@@ -10,7 +10,7 @@ defmodule AuthedApp.API.V1.SessionController do
     case Repo.insert(changeset) do
       {:ok, user} ->
         conn
-        |> AuthedApp.Auth.login(user, :json)
+        |> AuthedApp.Auth.login(user)
         |> put_status(201)
         |> render("login.json")
       _ ->
