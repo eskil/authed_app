@@ -13,12 +13,6 @@ defmodule AuthedApp.Router do
     plug :accepts, ["json"]
   end
 
-  pipeline :with_api_session do
-    plug Guardian.Plug.VerifyHeader
-    plug Guardian.Plug.LoadResource
-    plug AuthedApp.CurrentUser
-  end
-
   pipeline :with_session do
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.LoadResource

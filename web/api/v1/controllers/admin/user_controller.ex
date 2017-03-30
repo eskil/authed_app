@@ -3,7 +3,7 @@ defmodule AuthedApp.API.V1.Admin.UserController do
 
   alias AuthedApp.User
 
-  def index(conn, params) do
+  def index(conn, _params) do
     conn
     |> render("index.json", users: Repo.all(User))
   end
